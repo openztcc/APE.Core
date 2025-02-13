@@ -26,5 +26,30 @@ struct Frame
     uint16_t unk;
 };
 
+struct PixelBlock {
+
+};
+
+class ApeCore
+{
+    public: 
+        ApeCore();
+        virtual ~ApeCore();
+
+        void load(std::string fileName);
+        void save(std::string fileName);
+
+    private:
+        void read_pal();
+        void write_pal();
+
+        std::ifstream input;
+        std::ofstream output;
+        Header header;
+        std::vector<Frame> frames;
+        std::vector<std::vector<PixelBlock>> pixelBlocks;
+        std::vector<uint8_t> pal;
+};
+
 
 #endif // APECORE_H
