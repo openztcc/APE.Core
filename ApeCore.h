@@ -1,6 +1,17 @@
 #ifndef APECORE_H
 #define APECORE_H
 
+// APE.CORE - ZT1 Graphics Parser
+// by Eric Galvan (Goosifer.IO)
+// https://github.com/openztcc/APE.Core
+// Licensed under MIT (see LICENSE)
+//
+// This library parses ZT1 game sprites and animations. Please feel
+// free to use in your own projects and tools.
+//
+// Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
+// https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
+
 #include <fstream>
 #include <vector>
 #include <iostream>
@@ -10,6 +21,7 @@
 #define INPUT_FILE "SE"
 #define PAL_FILE "SE.pal"
 #define MAGIC "FATZ"
+#define APE_CORE_VERSION "0.1.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
