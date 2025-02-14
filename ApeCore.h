@@ -28,7 +28,7 @@ struct Header
 struct PixelBlock {
     uint8_t offset; // How many transparent pixels before drawing
     uint8_t colorCount; // How many colors in this block
-    std::vector<uint8_t> colors; // Color indexes
+    std::vector<uint8_t> colors; // Color indexes in pal
 };
 
 struct PixelSet {
@@ -142,19 +142,35 @@ bool ApeCore::isFatz(std::ifstream &input)
 
 int ApeCore::readPal(std::string fileName) 
 {
+    std::cout << "Reading palette" << std::endl;
     pal.open(fileName, std::ios::binary);
     if (!pal.is_open()) {
         return -1;
     }
 
+    // read first bytes to know how many colors
+    uint32_t colorCount;
+    pal.read((char*)&colorCount, 4);
+
+    std::cout << "\tcolorCount: " << colorCount << std::endl;
+
+    if (colorCount > 256) {
+        return -2;
+    }
+
+    // clear existing data
+    colors.clear();
+    colors.reserve(colorCount);
+
     // read 256 colors
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < colorCount; i++) {
         Color color;
         pal.read((char*)&color.b, 1);
         pal.read((char*)&color.g, 1);
         pal.read((char*)&color.r, 1);
         pal.read((char*)&color.a, 1);
         colors.push_back(color);
+        std::cout << "\tcolor " << i << ": " << (int)color.r << ", " << (int)color.g << ", " << (int)color.b << ", " << (int)color.a << std::endl;
     }
 
     pal.close();
@@ -164,7 +180,41 @@ int ApeCore::readPal(std::string fileName)
 
 int ApeCore::writeBuffer() 
 {
+    // convert PixelSets to output buffer
 
+    if (output.pixels != nullptr) {
+        delete[] output.pixels;
+        return -1;
+    }
+
+    if (frames.size() == 0) {
+        return 0;
+    }
+
+    // for each frame
+    for (int i = 0; i < frames.size(); i++) {
+        std::cout << "Writing frame " << i << " to output buffer" << std::endl;
+        Frame frame = frames[i];
+        // for each pixel set
+        for (int j = 0; j < frame.pixelSets.size(); j++) {
+            PixelSet pixelSet = frame.pixelSets[j];
+            // for each pixel block
+            for (int k = 0; k < pixelSet.blocks.size(); k++) {
+                PixelBlock pixelBlock = pixelSet.blocks[k];
+                // for each color in block
+                for (int l = 0; l < pixelBlock.colors.size(); l++) {
+                    uint8_t colorIndex = pixelBlock.colors[l];
+                    Color color = colors[colorIndex];
+                    // write color to output buffer
+                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4)] = color.r;
+                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 1] = color.g;
+                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 2] = color.b;
+                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 3] = color.a;
+                }
+            }
+        }
+    }
+    return 1;
 }
 
 int ApeCore::load(std::string fileName)
@@ -262,6 +312,27 @@ int ApeCore::load(std::string fileName)
     }
 
     input.close();
+
+    // write output buffer
+    if (ApeCore::writeBuffer() > 0) {
+        std::cout << "Wrote output buffer" << std::endl;
+    } else if (ApeCore::writeBuffer() == 0) {
+        std::cout << "No frames to write" << std::endl;
+    } else {
+        std::cout << "Failed to write output buffer" << std::endl;
+    }
+
+    // print output buffer
+    std::cout << "Output buffer" << std::endl;
+    std::cout << "\tpixels: " << output.pixels << std::endl;
+    std::cout << "\twidth: " << output.width << std::endl;
+    std::cout << "\theight: " << output.height << std::endl;
+    std::cout << "\tchannels: " << output.channels << std::endl;
+    std::cout << "\tdata: ";
+    for (int i = 0; i < output.width * output.height * output.channels; i++) {
+        // format pixels as vector of uint8_t
+        std::cout << (int)output.pixels[i] << " ";
+    }
 
     return 1;
 }
