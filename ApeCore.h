@@ -15,6 +15,8 @@
 // The ninth byte is a boolean value that specifies if there is an 
 // a background frame 
 
+// -------------------------------- APE Graphic Structures
+
 struct Header
 {
     uint32_t speed; // animation speed in ms
@@ -45,6 +47,17 @@ struct Frame
     std::vector<PixelSet> pixelSets; // The pixel sets  
 };
 
+// -------------------------------- PAL Colors
+
+struct Color {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+};
+
+// -------------------------------- Standard Pixel Output
+
 struct OutputBuffer {
     uint8_t* pixels; // continuous array of pixels: i.e. {0,0,0,255,255,255,255,...}
     int width;
@@ -62,8 +75,8 @@ class ApeCore
         void save(std::string fileName);
 
     private:
-        void read_pal();
-        void write_pal();
+        void readPal(std::string fileName);
+        void writePal(std::string fileName);
         bool isFatz(std::ifstream &input);
 
         std::ifstream input;
@@ -71,7 +84,7 @@ class ApeCore
         Header header;
         std::vector<Frame> frames;
         std::vector<std::vector<PixelBlock>> pixelBlocks;
-        std::vector<uint8_t> pal;
+        std::vector<Color> colors;
         bool hasBackground;
 };
 
@@ -88,7 +101,7 @@ ApeCore::ApeCore()
     header.palName = std::vector<char>();
     frames = std::vector<Frame>();
     pixelBlocks = std::vector<std::vector<PixelBlock>>();
-    pal = std::vector<uint8_t>();
+    colors = std::vector<Color>();
     input = std::ifstream();
     input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
@@ -175,18 +188,20 @@ int ApeCore::load(std::string fileName)
         // read pixel sets
         for (int j = 0; j < frame.height; j++) {
             PixelSet pixelSet;
-            input.read((char*)&pixelSet.blockCount, 1);
-            pixelSet.blocks.resize(pixelSet.blockCount);
-            for (int k = 0; k < pixelSet.blockCount; k++) {
+            input.read((char*)&pixelSet.blockCount, 1); // how many pixel blocks
+            pixelSet.blocks.resize(pixelSet.blockCount); // resize to block count
+            for (int k = 0; k < pixelSet.blockCount; k++) { // read each block
                 PixelBlock block;
-                input.read((char*)&block.offset, 1);
-                input.read((char*)&block.colorCount, 1);
-                block.colors.resize(block.colorCount);
-                input.read((char*)block.colors.data(), block.colorCount);
-                pixelSet.blocks[k] = block;
+                input.read((char*)&block.offset, 1); // offset
+                input.read((char*)&block.colorCount, 1); // color count
+                block.colors.resize(block.colorCount); // resize to color count
+                input.read((char*)block.colors.data(), block.colorCount); // colors
+                pixelSet.blocks[k] = block; // store block
             }
-            frame.pixelSets.push_back(pixelSet);
+            frame.pixelSets.push_back(pixelSet); // store pixel set
         }
+
+        // store frame
         frames[i] = frame;
 
         // print frame
