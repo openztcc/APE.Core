@@ -37,13 +37,15 @@ struct Header
     uint32_t frameCount;
 };
 
-struct PixelBlock {
+struct PixelBlock 
+{
     uint8_t offset; // How many transparent pixels before drawing
     uint8_t colorCount; // How many colors in this block
     std::vector<uint8_t> colors; // Color indexes in pal
 };
 
-struct PixelSet {
+struct PixelSet 
+{
     uint8_t blockCount; // How many pixel blocks
     std::vector<PixelBlock> blocks; // The pixel blocks
 };
@@ -61,7 +63,8 @@ struct Frame
 
 // -------------------------------- PAL Colors
 
-struct Color {
+struct Color 
+{
     uint8_t r;
     uint8_t g;
     uint8_t b;
@@ -70,7 +73,8 @@ struct Color {
 
 // -------------------------------- Standard Pixel Output
 
-struct OutputBuffer {
+struct OutputBuffer 
+{
     uint8_t* pixels; // continuous array of pixels: i.e. {0,0,0,255,255,255,255,...}
     int width;
     int height;
@@ -121,6 +125,43 @@ ApeCore::ApeCore()
 
 ApeCore::~ApeCore()
 {
+    if (input.is_open()) 
+    {
+        input.close();
+    }
+
+    if (pal.is_open()) 
+    {
+        pal.close();
+    }
+
+    // free frame buffers
+    for (OutputBuffer &output : frameBuffers) 
+    {
+        if (output.pixels != nullptr) 
+        {
+            delete[] output.pixels;
+        }
+    }
+
+    frameBuffers.clear();
+
+    // free colors
+    colors.clear();
+
+    // free frames
+    frames.clear();
+
+    // free pixel blocks
+    for (std::vector<PixelBlock> &blocks : pixelBlocks) 
+    {
+        blocks.clear();
+    }
+
+    pixelBlocks.clear();
+
+    // free header
+    header.palName.clear();    
 }
 
 std::vector<OutputBuffer> ApeCore::apeBuffer()
