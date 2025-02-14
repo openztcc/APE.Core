@@ -88,7 +88,7 @@ class ApeCore
         virtual ~ApeCore();
 
         int load(std::string fileName);
-        void save(std::string fileName);
+        int save(std::string fileName);
         std::vector<OutputBuffer> apeBuffer();
 
     private:
@@ -157,8 +157,6 @@ ApeCore::~ApeCore()
     {
         blocks.clear();
     }
-
-    pixelBlocks.clear();
 
     // free header
     header.palName.clear();    
@@ -401,5 +399,46 @@ int ApeCore::load(std::string fileName)
     return 1;
 }
 
+int ApeCore::save(std::string fileName)
+{
+    std::ofstream output(fileName, std::ios::binary);
+    if (!output.is_open()) {
+        return -1;
+    }
+
+    // write header
+    // TODO: write custom header
+    output.write((char*)&header.speed, 4);
+
+    // write palette name
+    output.write((char*)&header.palNameSize, 4);
+    output.write(header.palName.data(), header.palNameSize);
+
+    // write frame count
+    output.write((char*)&header.frameCount, 4);
+
+    // write frames
+    // TODO: write a Buffer reader and convert to frames and pal
+    for (Frame &frame : frames) {
+        output.write((char*)&frame.frameSize, 4);
+        output.write((char*)&frame.height, 2);
+        output.write((char*)&frame.width, 2);
+        output.write((char*)&frame.x, 2);
+        output.write((char*)&frame.y, 2);
+        output.write((char*)&frame.unk, 2);
+
+        // write pixel sets
+        for (PixelSet &pixelSet : frame.pixelSets) {
+            output.write((char*)&pixelSet.blockCount, 1);
+            for (PixelBlock &block : pixelSet.blocks) {
+                output.write((char*)&block.offset, 1);
+                output.write((char*)&block.colorCount, 1);
+                output.write((char*)block.colors.data(), block.colorCount);
+            }
+        }
+    }
+
+    output.close();
+}
 
 #endif // APECORE_H
