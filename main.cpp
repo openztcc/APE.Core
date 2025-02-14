@@ -3,7 +3,7 @@
 #include "ApeCore.h"
 #include <string>
 
-#define OUTPUT_FILE "output.png"
+#define OUTPUT_NAME "output"
 
 void writeImage(std::string fileName, OutputBuffer output)
 {
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[])
 
     int numBuffers = core.apeBuffer().size();
     for (int i = 0; i < numBuffers; i++) {
-        writeImage(OUTPUT_FILE + std::to_string(i) + ".png", core.apeBuffer()[i]);
+        writeImage(OUTPUT_NAME + std::to_string(i) + ".png", core.apeBuffer()[i]);
     }
     
     return 0;
