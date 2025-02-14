@@ -4,6 +4,8 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <cstdint>
+#include <cstring>
 
 #define INPUT_FILE "N"
 #define PAL_FILE "N.pal"
@@ -54,7 +56,7 @@ class ApeCore
     private:
         void read_pal();
         void write_pal();
-        bool isFatz();
+        bool isFatz(std::ifstream &input);
 
         std::ifstream input;
         OutputBuffer output;
@@ -67,10 +69,52 @@ class ApeCore
 
 ApeCore::ApeCore()
 {
+    hasBackground = false;
+    output.pixels = nullptr;
+    output.width = 0;
+    output.height = 0;
+    output.channels = 0;
+    header.speed = 0;
+    header.palNameSize = 0;
+    header.frameCount = 0;
+    header.palName = std::vector<char>();
+    frames = std::vector<Frame>();
+    pixelBlocks = std::vector<std::vector<PixelBlock>>();
+    pal = std::vector<uint8_t>();
+    input = std::ifstream();
+    input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    
 }
 
 ApeCore::~ApeCore()
 {
+}
+
+bool ApeCore::isFatz(std::ifstream &input)
+{
+    // save pos
+    std::streampos originalPos = input.tellg();  // Save current position
+
+    char magic[5] = {0};
+    input.read(magic, 4);
+    
+    // read at least 4 bytes
+    if (input.gcount() < 4) 
+    {
+        input.clear();  
+        input.seekg(originalPos);
+        return false;
+    }
+
+    // restore pos if not FATZ
+    if (strcmp(magic, MAGIC) != 0) {
+        input.clear();
+        input.seekg(originalPos);
+        return false;
+    }
+
+    return true;
 }
 
 int ApeCore::load(std::string fileName)
@@ -80,21 +124,16 @@ int ApeCore::load(std::string fileName)
         return -1;
     }
 
-    char magic[5];
-    input.read(magic, 4);
-    magic[4] = '\0';
-    if (strcmp(magic, MAGIC) != 0) {
-        return -2;
-    }
-
     // check if fatz
-    if (isFatz()) {
+    if (ApeCore::isFatz(input)) {
         // skip 4 bytes
         input.seekg(4, std::ios::cur);
         // read 9th byte
         input.read((char*)&hasBackground, 1);
-        std::cout << "is fatz" << std::endl;
+        std::cout << "Type: is fatz" << std::endl;
         std::cout << "hasBackground: " << hasBackground << std::endl;
+    } else {
+        std::cout << "Type: not fatz" << std::endl;
     }
 
     input.read((char*)&header.speed, 4);
@@ -106,12 +145,14 @@ int ApeCore::load(std::string fileName)
 
     // print header
     std::cout << "speed: " << header.speed << std::endl;
-    std::cout << "palNameSize: " << header.palNameSize << std::endl;
+    std::cout << "palNameSize: " << header.palNameSize << " bytes" << std::endl;
     std::cout << "palName: " << header.palName.data() << std::endl;
     std::cout << "frameCount: " << header.frameCount << std::endl;
     std::cout << "frames: " << frames.size() << std::endl;
 
-    return 0;
+    input.close();
+
+    return 1;
 }
 
 
