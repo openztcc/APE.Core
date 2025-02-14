@@ -182,38 +182,49 @@ int ApeCore::writeBuffer()
 {
     // convert PixelSets to output buffer
 
-    if (output.pixels != nullptr) {
-        delete[] output.pixels;
-        return -1;
-    }
-
-    if (frames.size() == 0) {
+    if (frames.empty()) {
         return 0;
     }
 
-    // for each frame
-    for (int i = 0; i < frames.size(); i++) {
-        std::cout << "Writing frame " << i << " to output buffer" << std::endl;
-        Frame frame = frames[i];
-        // for each pixel set
-        for (int j = 0; j < frame.pixelSets.size(); j++) {
-            PixelSet pixelSet = frame.pixelSets[j];
-            // for each pixel block
-            for (int k = 0; k < pixelSet.blocks.size(); k++) {
-                PixelBlock pixelBlock = pixelSet.blocks[k];
-                // for each color in block
-                for (int l = 0; l < pixelBlock.colors.size(); l++) {
-                    uint8_t colorIndex = pixelBlock.colors[l];
-                    Color color = colors[colorIndex];
-                    // write color to output buffer
-                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4)] = color.r;
-                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 1] = color.g;
-                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 2] = color.b;
-                    output.pixels[(i * frame.width * frame.height * 4) + (j * frame.width * frame.height * 4) + (k * frame.width * frame.height * 4) + (l * 4) + 3] = color.a;
-                }
+    // first frame decides output size 
+    // TODO: update structure to support multiple frame sizes (this is just for testing)
+    Frame &frame = frames[0];
+    output.width = frame.width;
+    output.height = frame.height;
+    output.channels = 4; // RGBA
+
+    // allocate output buffer
+    if (output.pixels != nullptr) {
+        delete[] output.pixels;
+    }
+    output.pixels = new uint8_t[output.width * output.height * output.channels * frames.size()];
+
+    // pixel rows (height)
+    for (int row = 0; row < frame.height; row++) 
+    {
+        PixelSet  &pixelSet = frame.pixelSets[row];
+        int xOffset = 0; // track x pos in row
+
+        // pixel columns (width)
+        for (PixelBlock &pixelBlock : pixelSet.blocks) 
+        {
+            xOffset += pixelBlock.offset; // skip transparent pixels
+
+            for (uint8_t colorIndex : pixelBlock.colors) 
+            {
+                Color &color = colors[colorIndex]; // get rgba value
+                
+                // calc pixel buffer index
+                int pixelIndex = (row * output.width + xOffset) * output.channels;
+                output.pixels[pixelIndex] = color.r;
+                output.pixels[pixelIndex + 1] = color.g;
+                output.pixels[pixelIndex + 2] = color.b;
+                output.pixels[pixelIndex + 3] = color.a;
+                xOffset++; // next pixel
             }
         }
     }
+
     return 1;
 }
 
