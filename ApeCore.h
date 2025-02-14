@@ -17,7 +17,7 @@
 
 struct Header
 {
-    uint32_t speed;
+    uint32_t speed; // animation speed in ms
     uint32_t palNameSize;
     std::vector<char> palName;
     uint32_t frameCount;
@@ -28,13 +28,20 @@ struct Frame
     uint32_t frameSize; // in bytes
     uint16_t height;
     uint16_t width;
-    uint16_t x;
-    uint16_t y;
-    uint16_t unk;
+    uint16_t x; // x offset
+    uint16_t y; // y offset
+    uint16_t unk; // unknown bytes
 };
 
 struct PixelBlock {
+    uint8_t offset; // How many transparent pixels before drawing
+    uint8_t colorCount; // How many colors in this block
+    std::vector<uint8_t> colors; // Color indexes
+};
 
+struct PixelSet {
+    uint8_t blockCount; // How many pixel blocks
+    std::vector<PixelBlock> blocks; // The pixel blocks
 };
 
 struct OutputBuffer {
@@ -124,16 +131,20 @@ int ApeCore::load(std::string fileName)
         return -1;
     }
 
+    // ------------------------------- read header
+    // Note: if bg frame exists, not counted in frameCount
+    std::cout << "Header" << std::endl;
+
     // check if fatz
     if (ApeCore::isFatz(input)) {
         // skip 4 bytes
         input.seekg(4, std::ios::cur);
         // read 9th byte
         input.read((char*)&hasBackground, 1);
-        std::cout << "Type: is fatz" << std::endl;
-        std::cout << "hasBackground: " << hasBackground << std::endl;
+        std::cout << "\tType: is fatz" << std::endl;
+        std::cout << "\thasBackground: " << hasBackground << std::endl;
     } else {
-        std::cout << "Type: not fatz" << std::endl;
+        std::cout << "\tType: not fatz" << std::endl;
     }
 
     input.read((char*)&header.speed, 4);
@@ -144,11 +155,32 @@ int ApeCore::load(std::string fileName)
     frames.resize(header.frameCount);
 
     // print header
-    std::cout << "speed: " << header.speed << std::endl;
-    std::cout << "palNameSize: " << header.palNameSize << " bytes" << std::endl;
-    std::cout << "palName: " << header.palName.data() << std::endl;
-    std::cout << "frameCount: " << header.frameCount << std::endl;
-    std::cout << "frames: " << frames.size() << std::endl;
+    std::cout << "\tspeed: " << header.speed << " ms" << std::endl;
+    std::cout << "\tpalNameSize: " << header.palNameSize << " bytes" << std::endl;
+    std::cout << "\tpalName: " << header.palName.data() << std::endl;
+    std::cout << "\tframeCount: " << header.frameCount << std::endl;
+    std::cout << "\tframes: " << frames.size() << std::endl;
+
+    // ------------------------------- read frames
+    for (int i = 0; i < header.frameCount; i++) {
+        Frame frame;
+        input.read((char*)&frame.frameSize, 4);
+        input.read((char*)&frame.height, 2);
+        input.read((char*)&frame.width, 2);
+        input.read((char*)&frame.x, 2);
+        input.read((char*)&frame.y, 2);
+        input.read((char*)&frame.unk, 2); // always 0?
+        frames[i] = frame;
+
+        // print frame
+        std::cout << "Frame " << i << std::endl;
+        std::cout << "\tframeSize: " << frame.frameSize << " bytes" << std::endl;
+        std::cout << "\theight: " << frame.height << " px" << std::endl;
+        std::cout << "\twidth: " << frame.width << " px" << std::endl;
+        std::cout << "\tx: " << frame.x << std::endl;
+        std::cout << "\ty: " << frame.y << std::endl;
+        std::cout << "\tunk: " << frame.unk << std::endl;
+    }
 
     input.close();
 
