@@ -8,5 +8,6 @@ int main(int argc, char const *argv[])
     } else {
         std::cout << "failed to load" << std::endl;
     }
+    
     return 0;
 }

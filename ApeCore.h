@@ -75,11 +75,13 @@ class ApeCore
         void save(std::string fileName);
 
     private:
-        void readPal(std::string fileName);
+        int readPal(std::string fileName);
         void writePal(std::string fileName);
         bool isFatz(std::ifstream &input);
+        int writeBuffer();
 
         std::ifstream input;
+        std::ifstream pal;
         OutputBuffer output;
         Header header;
         std::vector<Frame> frames;
@@ -138,6 +140,33 @@ bool ApeCore::isFatz(std::ifstream &input)
     return true;
 }
 
+int ApeCore::readPal(std::string fileName) 
+{
+    pal.open(fileName, std::ios::binary);
+    if (!pal.is_open()) {
+        return -1;
+    }
+
+    // read 256 colors
+    for (int i = 0; i < 256; i++) {
+        Color color;
+        pal.read((char*)&color.b, 1);
+        pal.read((char*)&color.g, 1);
+        pal.read((char*)&color.r, 1);
+        pal.read((char*)&color.a, 1);
+        colors.push_back(color);
+    }
+
+    pal.close();
+
+    return 1;
+}
+
+int ApeCore::writeBuffer() 
+{
+
+}
+
 int ApeCore::load(std::string fileName)
 {
     input.open(fileName, std::ios::binary);
@@ -161,12 +190,12 @@ int ApeCore::load(std::string fileName)
         std::cout << "\tType: not fatz" << std::endl;
     }
 
-    input.read((char*)&header.speed, 4);
-    input.read((char*)&header.palNameSize, 4);
-    header.palName.resize(header.palNameSize);
-    input.read(header.palName.data(), header.palNameSize);
-    input.read((char*)&header.frameCount, 4);
-    frames.resize(header.frameCount);
+    input.read((char*)&header.speed, 4); // animation speed in ms
+    input.read((char*)&header.palNameSize, 4); // size of palette name
+    header.palName.resize(header.palNameSize); // resize to size
+    input.read(header.palName.data(), header.palNameSize); // read palette name
+    input.read((char*)&header.frameCount, 4); // number of frames
+    frames.resize(header.frameCount); // resize frames to frame count
 
     // print header
     std::cout << "\tspeed: " << header.speed << " ms" << std::endl;
@@ -174,6 +203,9 @@ int ApeCore::load(std::string fileName)
     std::cout << "\tpalName: " << header.palName.data() << std::endl;
     std::cout << "\tframeCount: " << header.frameCount << std::endl;
     std::cout << "\tframes: " << frames.size() << std::endl;
+
+    // ------------------------------- read palette
+    ApeCore::readPal(PAL_FILE);
 
     // ------------------------------- read frames
     for (int i = 0; i < header.frameCount; i++) {
