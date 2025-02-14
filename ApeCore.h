@@ -23,16 +23,6 @@ struct Header
     uint32_t frameCount;
 };
 
-struct Frame
-{
-    uint32_t frameSize; // in bytes
-    uint16_t height;
-    uint16_t width;
-    uint16_t x; // x offset
-    uint16_t y; // y offset
-    uint16_t unk; // unknown bytes
-};
-
 struct PixelBlock {
     uint8_t offset; // How many transparent pixels before drawing
     uint8_t colorCount; // How many colors in this block
@@ -42,6 +32,17 @@ struct PixelBlock {
 struct PixelSet {
     uint8_t blockCount; // How many pixel blocks
     std::vector<PixelBlock> blocks; // The pixel blocks
+};
+
+struct Frame
+{
+    uint32_t frameSize; // in bytes
+    uint16_t height;
+    uint16_t width;
+    uint16_t x; // x offset
+    uint16_t y; // y offset
+    uint16_t unk; // unknown bytes
+    std::vector<PixelSet> pixelSets; // The pixel sets  
 };
 
 struct OutputBuffer {
@@ -170,6 +171,22 @@ int ApeCore::load(std::string fileName)
         input.read((char*)&frame.x, 2);
         input.read((char*)&frame.y, 2);
         input.read((char*)&frame.unk, 2); // always 0?
+
+        // read pixel sets
+        for (int j = 0; j < frame.height; j++) {
+            PixelSet pixelSet;
+            input.read((char*)&pixelSet.blockCount, 1);
+            pixelSet.blocks.resize(pixelSet.blockCount);
+            for (int k = 0; k < pixelSet.blockCount; k++) {
+                PixelBlock block;
+                input.read((char*)&block.offset, 1);
+                input.read((char*)&block.colorCount, 1);
+                block.colors.resize(block.colorCount);
+                input.read((char*)block.colors.data(), block.colorCount);
+                pixelSet.blocks[k] = block;
+            }
+            frame.pixelSets.push_back(pixelSet);
+        }
         frames[i] = frame;
 
         // print frame
@@ -180,6 +197,21 @@ int ApeCore::load(std::string fileName)
         std::cout << "\tx: " << frame.x << std::endl;
         std::cout << "\ty: " << frame.y << std::endl;
         std::cout << "\tunk: " << frame.unk << std::endl;
+        std::cout << "\tpixelSets: " << frame.pixelSets.size() << std::endl;
+        for (int j = 0; j < frame.pixelSets.size(); j++) {
+            std::cout << "\t\tpixelSet " << j << std::endl;
+            std::cout << "\t\t\tblockCount: " << frame.pixelSets[j].blockCount << std::endl;
+            for (int k = 0; k < frame.pixelSets[j].blocks.size(); k++) {
+                std::cout << "\t\t\tblock " << k << std::endl;
+                std::cout << "\t\t\t\toffset: " << (int)frame.pixelSets[j].blocks[k].offset << std::endl;
+                std::cout << "\t\t\t\tcolorCount: " << (int)frame.pixelSets[j].blocks[k].colorCount << std::endl;
+                std::cout << "\t\t\t\tcolors: ";
+                for (int l = 0; l < frame.pixelSets[j].blocks[k].colorCount; l++) {
+                    std::cout << (int)frame.pixelSets[j].blocks[k].colors[l] << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
     }
 
     input.close();
