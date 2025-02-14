@@ -8,6 +8,10 @@
 #define PAL_FILE "N.pal"
 #define MAGIC "FATZ"
 
+// if FATZ is first 4 bytes, additional 5 bytes ahead
+// The ninth byte is a boolean value that specifies if there is an 
+// a background frame 
+
 struct Header
 {
     uint32_t speed;
@@ -18,7 +22,7 @@ struct Header
 
 struct Frame
 {
-    uint32_t frameSize;
+    uint32_t frameSize; // in bytes
     uint16_t height;
     uint16_t width;
     uint16_t x;
@@ -42,6 +46,7 @@ class ApeCore
     private:
         void read_pal();
         void write_pal();
+        bool isFatz();
 
         std::ifstream input;
         std::ofstream output;
@@ -49,6 +54,7 @@ class ApeCore
         std::vector<Frame> frames;
         std::vector<std::vector<PixelBlock>> pixelBlocks;
         std::vector<uint8_t> pal;
+        bool hasBackground;
 };
 
 
