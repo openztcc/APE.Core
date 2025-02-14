@@ -19,7 +19,7 @@
 #include <cstring>
 
 #define INPUT_FILE "SE"
-#define PAL_FILE "SE.pal"
+#define PAL_FILE "restrant.pal"
 #define MAGIC "FATZ"
 #define APE_CORE_VERSION "0.1.0"
 
@@ -131,7 +131,7 @@ std::vector<OutputBuffer> ApeCore::apeBuffer()
 bool ApeCore::isFatz(std::ifstream &input)
 {
     // save pos
-    std::streampos originalPos = input.tellg();  // Save current position
+    std::streampos originalPos = input.tellg();
 
     char magic[5] = {0};
     input.read(magic, 4);
@@ -276,6 +276,11 @@ int ApeCore::load(std::string fileName)
     input.read(header.palName.data(), header.palNameSize); // read palette name
     input.read((char*)&header.frameCount, 4); // number of frames
     frames.resize(header.frameCount); // resize frames to frame count
+
+    if (hasBackground) {
+        header.frameCount += 1;
+        frames.resize(header.frameCount);
+    }
 
     // print header
     std::cout << "\tspeed: " << header.speed << " ms" << std::endl;
