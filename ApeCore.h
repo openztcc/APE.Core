@@ -73,6 +73,7 @@ class ApeCore
 
         int load(std::string fileName);
         void save(std::string fileName);
+        OutputBuffer apeBuffer();
 
     private:
         int readPal(std::string fileName);
@@ -112,6 +113,15 @@ ApeCore::ApeCore()
 
 ApeCore::~ApeCore()
 {
+}
+
+OutputBuffer ApeCore::apeBuffer()
+{
+    if (!output.pixels) {
+        return OutputBuffer();
+    } else {
+        return output;
+    }
 }
 
 bool ApeCore::isFatz(std::ifstream &input)
@@ -165,9 +175,9 @@ int ApeCore::readPal(std::string fileName)
     // read 256 colors
     for (int i = 0; i < colorCount; i++) {
         Color color;
-        pal.read((char*)&color.b, 1);
-        pal.read((char*)&color.g, 1);
         pal.read((char*)&color.r, 1);
+        pal.read((char*)&color.g, 1);
+        pal.read((char*)&color.b, 1);
         pal.read((char*)&color.a, 1);
         colors.push_back(color);
         std::cout << "\tcolor " << i << ": " << (int)color.r << ", " << (int)color.g << ", " << (int)color.b << ", " << (int)color.a << std::endl;

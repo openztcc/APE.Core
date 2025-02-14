@@ -2,3 +2,5 @@
 /.vscode
 *.gch
 *.exe
+stb_*
+*.png
