@@ -1,6 +1,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #include "ApeCore.h"
+#include <string>
 
 #define OUTPUT_FILE "output.png"
 
@@ -27,7 +28,10 @@ int main(int argc, char const *argv[])
         std::cout << "failed to load" << std::endl;
     }
 
-    writeImage(OUTPUT_FILE, core.apeBuffer());
+    int numBuffers = core.apeBuffer().size();
+    for (int i = 0; i < numBuffers; i++) {
+        writeImage(OUTPUT_FILE + std::to_string(i) + ".png", core.apeBuffer()[i]);
+    }
     
     return 0;
 }

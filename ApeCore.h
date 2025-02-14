@@ -7,8 +7,8 @@
 #include <cstdint>
 #include <cstring>
 
-#define INPUT_FILE "N"
-#define PAL_FILE "N.pal"
+#define INPUT_FILE "SE"
+#define PAL_FILE "SE.pal"
 #define MAGIC "FATZ"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
@@ -73,7 +73,7 @@ class ApeCore
 
         int load(std::string fileName);
         void save(std::string fileName);
-        OutputBuffer apeBuffer();
+        std::vector<OutputBuffer> apeBuffer();
 
     private:
         int readPal(std::string fileName);
@@ -83,7 +83,7 @@ class ApeCore
 
         std::ifstream input;
         std::ifstream pal;
-        OutputBuffer output;
+        std::vector<OutputBuffer> frameBuffers;
         Header header;
         std::vector<Frame> frames;
         std::vector<std::vector<PixelBlock>> pixelBlocks;
@@ -94,10 +94,6 @@ class ApeCore
 ApeCore::ApeCore()
 {
     hasBackground = false;
-    output.pixels = nullptr;
-    output.width = 0;
-    output.height = 0;
-    output.channels = 0;
     header.speed = 0;
     header.palNameSize = 0;
     header.frameCount = 0;
@@ -115,13 +111,9 @@ ApeCore::~ApeCore()
 {
 }
 
-OutputBuffer ApeCore::apeBuffer()
+std::vector<OutputBuffer> ApeCore::apeBuffer()
 {
-    if (!output.pixels) {
-        return OutputBuffer();
-    } else {
-        return output;
-    }
+    return frameBuffers;
 }
 
 bool ApeCore::isFatz(std::ifstream &input)
@@ -196,41 +188,46 @@ int ApeCore::writeBuffer()
         return 0;
     }
 
-    // first frame decides output size 
-    // TODO: update structure to support multiple frame sizes (this is just for testing)
-    Frame &frame = frames[0];
-    output.width = frame.width;
-    output.height = frame.height;
-    output.channels = 4; // RGBA
+    frameBuffers.clear();
+    frameBuffers.resize(frames.size());
 
-    // allocate output buffer
-    if (output.pixels != nullptr) {
-        delete[] output.pixels;
-    }
-    output.pixels = new uint8_t[output.width * output.height * output.channels * frames.size()];
-
-    // pixel rows (height)
-    for (int row = 0; row < frame.height; row++) 
+    for (Frame &frame : frames) 
     {
-        PixelSet  &pixelSet = frame.pixelSets[row];
-        int xOffset = 0; // track x pos in row
+        // get current index
+        int index = &frame - &frames[0];
 
-        // pixel columns (width)
-        for (PixelBlock &pixelBlock : pixelSet.blocks) 
+        // get current frame buffer
+        OutputBuffer &output = frameBuffers[index];
+
+        // allocate pixel buffer
+        output.width = frame.width;
+        output.height = frame.height;
+        output.channels = 4;
+        output.pixels = new uint8_t[output.width * output.height * output.channels * frames.size()];
+
+        // pixel rows (height)
+        for (int row = 0; row < frame.height; row++) 
         {
-            xOffset += pixelBlock.offset; // skip transparent pixels
+            PixelSet  &pixelSet = frame.pixelSets[row];
+            int xOffset = 0; // track x pos in row
 
-            for (uint8_t colorIndex : pixelBlock.colors) 
+            // pixel columns (width)
+            for (PixelBlock &pixelBlock : pixelSet.blocks) 
             {
-                Color &color = colors[colorIndex]; // get rgba value
-                
-                // calc pixel buffer index
-                int pixelIndex = (row * output.width + xOffset) * output.channels;
-                output.pixels[pixelIndex] = color.r;
-                output.pixels[pixelIndex + 1] = color.g;
-                output.pixels[pixelIndex + 2] = color.b;
-                output.pixels[pixelIndex + 3] = color.a;
-                xOffset++; // next pixel
+                xOffset += pixelBlock.offset; // skip transparent pixels
+
+                for (uint8_t colorIndex : pixelBlock.colors) 
+                {
+                    Color &color = colors[colorIndex]; // get rgba value
+                    
+                    // calc pixel buffer index
+                    int pixelIndex = (row * output.width + xOffset) * output.channels;
+                    output.pixels[pixelIndex] = color.r;
+                    output.pixels[pixelIndex + 1] = color.g;
+                    output.pixels[pixelIndex + 2] = color.b;
+                    output.pixels[pixelIndex + 3] = color.a;
+                    xOffset++; // next pixel
+                }
             }
         }
     }
@@ -341,18 +338,6 @@ int ApeCore::load(std::string fileName)
         std::cout << "No frames to write" << std::endl;
     } else {
         std::cout << "Failed to write output buffer" << std::endl;
-    }
-
-    // print output buffer
-    std::cout << "Output buffer" << std::endl;
-    std::cout << "\tpixels: " << output.pixels << std::endl;
-    std::cout << "\twidth: " << output.width << std::endl;
-    std::cout << "\theight: " << output.height << std::endl;
-    std::cout << "\tchannels: " << output.channels << std::endl;
-    std::cout << "\tdata: ";
-    for (int i = 0; i < output.width * output.height * output.channels; i++) {
-        // format pixels as vector of uint8_t
-        std::cout << (int)output.pixels[i] << " ";
     }
 
     return 1;
