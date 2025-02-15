@@ -78,7 +78,7 @@ APE_EXPORT int ApeCore_GetFrameBufferSize(ApeCoreHandle handle, int index)
     std::vector<OutputBuffer> frames = core->apeBuffer();
 
     if (index >= 0 && index < frames.size()) {
-        return frames.size();
+        return frames[index].width * frames[index].height * frames[index].channels * sizeof(int);
     }
 
     return 0;
@@ -88,15 +88,23 @@ APE_EXPORT int ApeCore_GetFrameBufferSize(ApeCoreHandle handle, int index)
 APE_EXPORT int* ApeCore_GetFrameBuffer(ApeCoreHandle handle, int index) 
 {
     ApeCore* core = static_cast<ApeCore*>(handle);
-    std::vector<OutputBuffer> frames = core->apeBuffer();
-    int* buffer = nullptr;
+    std::vector<OutputBuffer>& frames = core->apeBuffer();
 
     if (index >= 0 && index < frames.size()) {
-        for (int i = 0; i < frames[index].width * frames[index].height * frames[index].channels; i++) {
-            buffer[i] = frames[index].pixels[i];
-        }
-        return buffer;
+        int bufferSize = frames[index].width * frames[index].height * frames[index].channels;
+        
+        int* buffer = new int[bufferSize];  // Allocate memory dynamically
+
+        std::memcpy(buffer, frames[index].pixels, bufferSize * sizeof(int));
+
+        return buffer;  // Caller must free this memory
     }
 
     return nullptr;
+}
+
+// free buffer
+APE_EXPORT void ApeCore_FreeFrameBuffer(int* buffer) 
+{
+    delete[] buffer;
 }

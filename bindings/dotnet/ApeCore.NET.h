@@ -31,6 +31,7 @@ APE_EXPORT int ApeCore_GetFrameWidth(ApeCoreHandle handle, int index);
 APE_EXPORT int ApeCore_GetFrameHeight(ApeCoreHandle handle, int index);
 APE_EXPORT int ApeCore_GetFrameBufferSize(ApeCoreHandle handle, int index);
 APE_EXPORT int* ApeCore_GetFrameBuffer(ApeCoreHandle handle, int index);
+APE_EXPORT int ApeCore_FreeFrameBuffer(int* buffer);
 
 #ifdef __cplusplus
 }
