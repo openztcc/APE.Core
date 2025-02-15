@@ -21,6 +21,7 @@
 #define INPUT_FILE "SE"
 #define PAL_FILE "restrant.pal"
 #define MAGIC "FATZ"
+#define MAGIC_ALT "ZTAF"
 #define APE_CORE_VERSION "0.1.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
@@ -406,16 +407,17 @@ int ApeCore::save(std::string fileName)
         return -1;
     }
 
-    // write header
-    // TODO: write custom header
-    output.write((char*)&header.speed, 4);
+    if (hasBackground) 
+    {
+        // WRITE: FATZ
+        output.write(MAGIC, 4);
+    }
 
-    // write palette name
-    output.write((char*)&header.palNameSize, 4);
-    output.write(header.palName.data(), header.palNameSize);
-
-    // write frame count
-    output.write((char*)&header.frameCount, 4);
+    // -------------------------------------- write header
+    output.write((char*)&header.speed, 4); // speed in ms
+    output.write((char*)&header.palNameSize, 4); // size of palette name
+    output.write(header.palName.data(), header.palNameSize); // palette name
+    output.write((char*)&header.frameCount, 4); // frame count
 
     // write frames
     // TODO: write a Buffer reader and convert to frames and pal
