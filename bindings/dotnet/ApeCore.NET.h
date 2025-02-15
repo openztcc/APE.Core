@@ -24,7 +24,7 @@ typedef void* ApeCoreHandle;
 
 APE_EXPORT ApeCoreHandle ApeCore_Create();
 APE_EXPORT void ApeCore_Destroy(ApeCoreHandle handle);
-APE_EXPORT int ApeCore_Load(ApeCoreHandle handle, const char* fileName);
+APE_EXPORT int ApeCore_Load(ApeCoreHandle handle, const char* fileName, int colorModel);
 APE_EXPORT int ApeCore_GetFrameCount(ApeCoreHandle handle);
 APE_EXPORT OutputBuffer ApeCore_GetFrame(ApeCoreHandle handle, int index);
 
