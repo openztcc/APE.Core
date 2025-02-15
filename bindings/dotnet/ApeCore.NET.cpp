@@ -44,3 +44,59 @@ APE_EXPORT OutputBuffer ApeCore_GetFrame(ApeCoreHandle handle, int index)
     OutputBuffer empty = { nullptr, 0, 0, 0 };
     return empty;
 }
+
+// get width of frame
+APE_EXPORT int ApeCore_GetFrameWidth(ApeCoreHandle handle, int index) 
+{
+    ApeCore* core = static_cast<ApeCore*>(handle);
+    std::vector<OutputBuffer> frames = core->apeBuffer();
+
+    if (index >= 0 && index < frames.size()) {
+        return frames[index].width;
+    }
+
+    return 0;
+}
+
+// get height of frame
+APE_EXPORT int ApeCore_GetFrameHeight(ApeCoreHandle handle, int index) 
+{
+    ApeCore* core = static_cast<ApeCore*>(handle);
+    std::vector<OutputBuffer> frames = core->apeBuffer();
+
+    if (index >= 0 && index < frames.size()) {
+        return frames[index].height;
+    }
+
+    return 0;
+}
+
+// get frame buffer size
+APE_EXPORT int ApeCore_GetFrameBufferSize(ApeCoreHandle handle, int index) 
+{
+    ApeCore* core = static_cast<ApeCore*>(handle);
+    std::vector<OutputBuffer> frames = core->apeBuffer();
+
+    if (index >= 0 && index < frames.size()) {
+        return frames.size();
+    }
+
+    return 0;
+}
+
+// get frame buffer
+APE_EXPORT int* ApeCore_GetFrameBuffer(ApeCoreHandle handle, int index) 
+{
+    ApeCore* core = static_cast<ApeCore*>(handle);
+    std::vector<OutputBuffer> frames = core->apeBuffer();
+    int* buffer = nullptr;
+
+    if (index >= 0 && index < frames.size()) {
+        for (int i = 0; i < frames[index].width * frames[index].height * frames[index].channels; i++) {
+            buffer[i] = frames[index].pixels[i];
+        }
+        return buffer;
+    }
+
+    return nullptr;
+}
