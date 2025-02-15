@@ -88,7 +88,7 @@ class ApeCore
         ApeCore();
         virtual ~ApeCore();
 
-        int load(std::string fileName);
+        int load(std::string fileName, int colorProfile = 0);
         int save(std::string fileName);
         std::vector<OutputBuffer> apeBuffer();
 
@@ -106,7 +106,8 @@ class ApeCore
         std::vector<std::vector<PixelBlock>> pixelBlocks;
         std::vector<Color> colors;
         bool hasBackground;
-};
+        int colorModel;
+    };
 
 ApeCore::ApeCore()
 {
@@ -119,13 +120,12 @@ ApeCore::ApeCore()
     pixelBlocks = std::vector<std::vector<PixelBlock>>();
     colors = std::vector<Color>();
     input = std::ifstream();
-    input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-    
+    input.exceptions(std::ifstream::failbit | std::ifstream::badbit);    
+    colorModel = 0;
 }
 
 ApeCore::~ApeCore()
-{
+{ 
     if (input.is_open()) 
     {
         input.close();
@@ -274,10 +274,17 @@ int ApeCore::writeBuffer()
                     
                     // calc pixel buffer index
                     int pixelIndex = (row * output.width + xOffset) * output.channels;
-                    output.pixels[pixelIndex] = color.r;
-                    output.pixels[pixelIndex + 1] = color.g;
-                    output.pixels[pixelIndex + 2] = color.b;
-                    output.pixels[pixelIndex + 3] = color.a;
+                    if (colorModel == 1) {
+                        output.pixels[pixelIndex] = color.b;
+                        output.pixels[pixelIndex + 1] = color.g;
+                        output.pixels[pixelIndex + 2] = color.r;
+                        output.pixels[pixelIndex + 3] = color.a;
+                    } else {
+                        output.pixels[pixelIndex] = color.r;
+                        output.pixels[pixelIndex + 1] = color.g;
+                        output.pixels[pixelIndex + 2] = color.b;
+                        output.pixels[pixelIndex + 3] = color.a;
+                    }
                     xOffset++; // next pixel
                 }
             }
@@ -287,8 +294,12 @@ int ApeCore::writeBuffer()
     return 1;
 }
 
-int ApeCore::load(std::string fileName)
+// Color model 0 = RGBA
+// Color model 1 = BGRA
+int ApeCore::load(std::string fileName, int colorModel = 0)
 {
+    this->colorModel = colorModel;
+
     input.open(fileName, std::ios::binary);
     if (!input.is_open()) {
         return -1;
