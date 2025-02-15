@@ -120,7 +120,8 @@ ApeCore::ApeCore()
     pixelBlocks = std::vector<std::vector<PixelBlock>>();
     colors = std::vector<Color>();
     input = std::ifstream();
-    input.exceptions(std::ifstream::failbit | std::ifstream::badbit);    
+    input.exceptions(static_cast<std::ios_base::iostate>(
+        std::ifstream::failbit | std::ifstream::badbit));
     colorModel = 0;
 }
 
@@ -296,11 +297,11 @@ int ApeCore::writeBuffer()
 
 // Color model 0 = RGBA
 // Color model 1 = BGRA
-int ApeCore::load(std::string fileName, int colorModel = 0)
+int ApeCore::load(std::string fileName, int colorModel)
 {
     this->colorModel = colorModel;
 
-    input.open(fileName, std::ios::binary);
+    input.open(fileName, static_cast<std::ios_base::openmode>(std::ios::binary | std::ios::in));
     if (!input.is_open()) {
         return -1;
     }
@@ -413,7 +414,7 @@ int ApeCore::load(std::string fileName, int colorModel = 0)
 
 int ApeCore::save(std::string fileName)
 {
-    std::ofstream output(fileName, std::ios::binary);
+    std::ofstream output(fileName, static_cast<std::ios_base::openmode>(std::ios::binary | std::ios::out));
     if (!output.is_open()) {
         return -1;
     }
@@ -452,6 +453,8 @@ int ApeCore::save(std::string fileName)
     }
 
     output.close();
+
+    return 1;
 }
 
 #endif // APECORE_H

@@ -8,6 +8,8 @@
 #ifndef APECORE_WRAPPER_H
 #define APECORE_WRAPPER_H
 
+#include "../../ApeCore.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -17,8 +19,6 @@ extern "C" {
 #else
     #define APE_EXPORT
 #endif
-
-#include "./ApeCore.h"
 
 typedef void* ApeCoreHandle;
 
