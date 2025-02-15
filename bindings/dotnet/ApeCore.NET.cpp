@@ -88,23 +88,24 @@ APE_EXPORT int ApeCore_GetFrameBufferSize(ApeCoreHandle handle, int index)
 APE_EXPORT int* ApeCore_GetFrameBuffer(ApeCoreHandle handle, int index) 
 {
     ApeCore* core = static_cast<ApeCore*>(handle);
-    std::vector<OutputBuffer>& frames = core->apeBuffer();
+    std::vector<OutputBuffer> frames = core->apeBuffer();
 
     if (index >= 0 && index < frames.size()) {
         int bufferSize = frames[index].width * frames[index].height * frames[index].channels;
         
-        int* buffer = new int[bufferSize];  // Allocate memory dynamically
+        int* buffer = new int[bufferSize]; 
 
         std::memcpy(buffer, frames[index].pixels, bufferSize * sizeof(int));
 
-        return buffer;  // Caller must free this memory
+        return buffer; 
     }
 
     return nullptr;
 }
 
 // free buffer
-APE_EXPORT void ApeCore_FreeFrameBuffer(int* buffer) 
+APE_EXPORT int ApeCore_FreeFrameBuffer(int* buffer) 
 {
     delete[] buffer;
+    return 1;
 }
