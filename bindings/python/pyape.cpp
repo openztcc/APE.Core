@@ -1,4 +1,13 @@
+// APE.CORE .NET Bindings
+// by Eric Galvan (Goosifer.IO)
+// https://github.com/openztcc/APE.Core
+// Licensed under MIT (see LICENSE)
+//
+// Python bindings for APE.CORE
+// Version 0.1.0
+
 #include "../../ApeCore.h"
+#define VERSION "0.1.0"
 
 extern "C" {
     __declspec(dllexport) ApeCore* create_ape_instance() 

@@ -11,6 +11,8 @@
 //
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
+//
+// Version 0.3.0
 
 #include <fstream>
 #include <vector>
@@ -20,10 +22,9 @@
 #include "stb_image_write.h"
 
 #define INPUT_FILE "SE"
-#define PAL_FILE "restrant.pal"
 #define MAGIC "FATZ"
 #define MAGIC_ALT "ZTAF"
-#define APE_CORE_VERSION "0.1.0"
+#define APE_CORE_VERSION "0.3.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -89,10 +90,11 @@ class ApeCore
         ApeCore();
         virtual ~ApeCore();
 
-        int load(std::string fileName, int colorProfile = 0);
+        int load(std::string fileName, int colorProfile = 0, std::string ioPal = "");
         int save(std::string fileName);
         int exportToPNG(std::string fileName, OutputBuffer output);
         std::vector<OutputBuffer> apeBuffer();
+        std::string getPalLocation();
 
     private:
         int readPal(std::string fileName);
@@ -109,6 +111,7 @@ class ApeCore
         std::vector<Color> colors;
         bool hasBackground;
         int colorModel;
+        std::string palLocation;
     };
 
 ApeCore::ApeCore()
@@ -125,6 +128,7 @@ ApeCore::ApeCore()
     input.exceptions(static_cast<std::ios_base::iostate>(
         std::ifstream::failbit | std::ifstream::badbit));
     colorModel = 0;
+    palLocation = "";
 }
 
 ApeCore::~ApeCore()
@@ -169,6 +173,11 @@ ApeCore::~ApeCore()
 std::vector<OutputBuffer> ApeCore::apeBuffer()
 {
     return frameBuffers;
+}
+
+std::string ApeCore::getPalLocation() 
+{
+    return palLocation;
 }
 
 bool ApeCore::isFatz(std::ifstream &input)
@@ -299,7 +308,7 @@ int ApeCore::writeBuffer()
 
 // Color model 0 = RGBA
 // Color model 1 = BGRA
-int ApeCore::load(std::string fileName, int colorModel)
+int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
 {
     this->colorModel = colorModel;
 
@@ -331,6 +340,11 @@ int ApeCore::load(std::string fileName, int colorModel)
     input.read((char*)&header.frameCount, 4); // number of frames
     frames.resize(header.frameCount); // resize frames to frame count
 
+    if (ioPal.empty()) 
+        palLocation = std::string(header.palName.data());
+    else
+        palLocation = ioPal;
+
     if (hasBackground) {
         header.frameCount += 1;
         frames.resize(header.frameCount);
@@ -344,7 +358,7 @@ int ApeCore::load(std::string fileName, int colorModel)
     std::cout << "\tframes: " << frames.size() << std::endl;
 
     // ------------------------------- read palette
-    ApeCore::readPal(PAL_FILE);
+    ApeCore::readPal(palLocation);
 
     // ------------------------------- read frames
     for (int i = 0; i < header.frameCount; i++) {
