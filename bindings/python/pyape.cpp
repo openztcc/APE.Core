@@ -35,10 +35,10 @@ extern "C" {
         return &ape->apeBuffer()[0];
     }
 
-    __declspec(dllexport) int get_frame_buffer_size(ApeCore* ape) 
+    __declspec(dllexport) int get_frame_count(ApeCore* ape) 
     {
         if (!ape) return 0;
-        return static_cast<int>(ape->apeBuffer().size());
+        return ape->apeBuffer().size();
     }
 
     __declspec(dllexport) OutputBuffer* get_frame(ApeCore* ape, int index) 
@@ -47,16 +47,16 @@ extern "C" {
         return &ape->apeBuffer()[index]; 
     }
 
-    __declspec(dllexport) int get_frame_buffer_width(ApeCore* ape, int index) 
+    __declspec(dllexport) int get_frame_buffer_width(OutputBuffer* buffer) 
     {
-        if (!ape || index < 0 || index >= ape->apeBuffer().size()) return 0;
-        return ape->apeBuffer()[index].width;
+        if (!buffer) return 0;
+        return buffer->width;
     }
 
-    __declspec(dllexport) int get_frame_buffer_height(ApeCore* ape, int index) 
+    __declspec(dllexport) int get_frame_buffer_height(OutputBuffer* buffer) 
     {
-        if (!ape || index < 0 || index >= ape->apeBuffer().size()) return 0;
-        return ape->apeBuffer()[index].height;
+        if (!buffer) return 0;
+        return buffer->height;
     }
 
     __declspec(dllexport) int frame_to_png(ApeCore* ape, const char* fileName, int index) 
