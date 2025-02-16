@@ -31,10 +31,11 @@ extern "C" {
 
     __declspec(dllexport) OutputBuffer** get_frame_buffer(ApeCore* ape) 
     {
-        if (!ape || ape->apeBuffer().empty()) return nullptr;
-        OutputBuffer** buffer = new OutputBuffer*[ape->apeBuffer().size()];
-        for (int i = 0; i < ape->apeBuffer().size(); i++) {
-            buffer[i] = &ape->apeBuffer()[i];
+        int frame_count = ape->getFrameCount();
+        if (!ape || frame_count == 0) return nullptr;
+        OutputBuffer** buffer = new OutputBuffer*[frame_count];
+        for (int i = 0; i < frame_count; i++) {
+            buffer[i] = ape->apeBuffer()[i];
         }
         return buffer;
     }
@@ -42,13 +43,14 @@ extern "C" {
     __declspec(dllexport) int get_frame_count(ApeCore* ape) 
     {
         if (!ape) return 0;
-        return ape->apeBuffer().size();
+        return ape->getFrameCount();
     }
 
     __declspec(dllexport) OutputBuffer* get_frame(ApeCore* ape, int index) 
     {
-        if (!ape || index < 0 || index >= ape->apeBuffer().size()) return nullptr;
-        return &ape->apeBuffer()[index]; 
+        int max_size = ape->getFrameCount();
+        if (!ape || index < 0 || index >= max_size) return nullptr;
+        return ape->apeBuffer()[index];
     }
 
     __declspec(dllexport) int get_frame_buffer_width(OutputBuffer* buffer) 
@@ -71,7 +73,7 @@ extern "C" {
 
     __declspec(dllexport) int frame_to_png(ApeCore* ape, const char* fileName, int index) 
     {
-        if (!ape || index < 0 || index >= ape->apeBuffer().size()) return -1;
-        return ape->exportToPNG(std::string(fileName), ape->apeBuffer()[index]);
+        if (!ape || index < 0 || index >= ape->getFrameCount()) return 0;
+        return ape->exportToPNG(std::string(fileName), *ape->apeBuffer()[index]);
     }
 }

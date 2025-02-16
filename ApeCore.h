@@ -93,7 +93,8 @@ class ApeCore
         int load(std::string fileName, int colorProfile = 0, std::string ioPal = "");
         int save(std::string fileName);
         int exportToPNG(std::string fileName, OutputBuffer output);
-        std::vector<OutputBuffer> apeBuffer();
+        int getFrameCount();
+        OutputBuffer** apeBuffer();
         std::string getPalLocation();
 
     private:
@@ -104,7 +105,7 @@ class ApeCore
 
         std::ifstream input;
         std::ifstream pal;
-        std::vector<OutputBuffer> frameBuffers;
+        OutputBuffer** frameBuffers;
         Header header;
         std::vector<Frame> frames;
         std::vector<std::vector<PixelBlock>> pixelBlocks;
@@ -129,6 +130,8 @@ ApeCore::ApeCore()
         std::ifstream::failbit | std::ifstream::badbit));
     colorModel = 0;
     palLocation = "";
+
+    frameBuffers = new OutputBuffer*[1];
 }
 
 ApeCore::~ApeCore()
@@ -144,15 +147,12 @@ ApeCore::~ApeCore()
     }
 
     // free frame buffers
-    for (OutputBuffer &output : frameBuffers) 
+    int numBuffers = getFrameCount();
+    for (int i = 0; i < numBuffers; i++) 
     {
-        if (output.pixels != nullptr) 
-        {
-            delete[] output.pixels;
-        }
+        delete[] frameBuffers[i]->pixels;
+        delete frameBuffers[i];
     }
-
-    frameBuffers.clear();
 
     // free colors
     colors.clear();
@@ -170,9 +170,14 @@ ApeCore::~ApeCore()
     header.palName.clear();    
 }
 
-std::vector<OutputBuffer> ApeCore::apeBuffer()
+OutputBuffer** ApeCore::apeBuffer()
 {
     return frameBuffers;
+}
+
+int ApeCore::getFrameCount() 
+{
+    return header.frameCount;
 }
 
 std::string ApeCore::getPalLocation() 
@@ -252,8 +257,8 @@ int ApeCore::writeBuffer()
         return 0;
     }
 
-    frameBuffers.clear();
-    frameBuffers.resize(frames.size());
+    int numBuffers = getFrameCount();
+    frameBuffers = new OutputBuffer*[numBuffers];
 
     for (Frame &frame : frames) 
     {
@@ -261,11 +266,12 @@ int ApeCore::writeBuffer()
         int index = &frame - &frames[0];
 
         // get current frame buffer
-        OutputBuffer &output = frameBuffers[index];
+        OutputBuffer output = OutputBuffer();
+
 
         // allocate pixel buffer
-        output.width = frame.width;
-        output.height = frame.height;
+        output.width = static_cast<int>(frame.width);
+        output.height = static_cast<int>(frame.height);
         output.channels = 4;
         output.pixels = new uint8_t[output.width * output.height * output.channels * frames.size()];
 
@@ -301,6 +307,7 @@ int ApeCore::writeBuffer()
                 }
             }
         }
+        frameBuffers[index] = new OutputBuffer(output);
     }
 
     return 1;

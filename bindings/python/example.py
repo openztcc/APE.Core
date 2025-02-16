@@ -25,6 +25,15 @@ lib.get_frame_count.restype = ctypes.c_int
 lib.frame_to_png.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
 lib.frame_to_png.restype = None
 
+# Define OutputBuffer struct
+class OutputBuffer(ctypes.Structure):
+    _fields_ = [
+        ("pixels", ctypes.POINTER(ctypes.c_uint8)),
+        ("width", ctypes.c_int),
+        ("height", ctypes.c_int),
+        ("channels", ctypes.c_int)
+    ]
+
 # Define frame buffers
 lib.get_frame_buffer.argtypes = [ctypes.c_void_p]
 lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.c_ubyte)
@@ -46,9 +55,18 @@ lib.load_image(ape, image_path, 0, b"restrant.pal")
 num_frames = lib.get_frame_count(ape)
 
 # Get frame buffer
+frame_buffer = lib.get_frame_buffer(ape)
 
 for i in range(0, num_frames):
     lib.frame_to_png(ape, b"test" + str(i).encode() + b".png", i)
+    # get frame properties
+    width = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.width
+    height = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.height
+    channels = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.channels
+    # get frame data
+    data = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.pixels
+    # print frame properties
+    print(f"Frame {i}: {width}x{height} with {channels} channels")
 
 print("Image loaded successfully!")
 
