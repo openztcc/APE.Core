@@ -18,9 +18,17 @@ ApeCoreNet.dll should be generated in the dotnet folder and the bindings can be 
 
 Python bindings are also available.
 
-To compile, clone this repository and cd into the python folder. Then run the following command:
+To compile, clone this repository and cd into the python folder. 
 
-`g++ -shared -o pyape.dll pyape.cpp "-Wl,--out-implib,libpyape.a"`
+Gather the following dependencies and place them in the same folder as pyape.cpp:
+
+- libstdc++-6.dll
+- libgcc_s_seh-1.dll
+- libwinpthread-1.dll
+
+Then run the following command:
+
+`g++ -shared -o pyape.dll pyape.cpp "-Wl,--out-implib,libpyape.a" -static-libgcc -static-libstdc++ -static -lpthread`
 
 You can then import pyape.dll into any python project using ctypes.
 

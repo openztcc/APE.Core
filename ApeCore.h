@@ -17,6 +17,7 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
+#include "stb_image_write.h"
 
 #define INPUT_FILE "SE"
 #define PAL_FILE "restrant.pal"
@@ -90,6 +91,7 @@ class ApeCore
 
         int load(std::string fileName, int colorProfile = 0);
         int save(std::string fileName);
+        int exportToPNG(std::string fileName, OutputBuffer output);
         std::vector<OutputBuffer> apeBuffer();
 
     private:
@@ -453,6 +455,23 @@ int ApeCore::save(std::string fileName)
     }
 
     output.close();
+
+    return 1;
+}
+
+int ApeCore::exportToPNG(std::string fileName, OutputBuffer output)
+{
+    if (!output.pixels) {
+        std::cerr << "No pixels to write" << std::endl;
+        return -1;
+    }
+
+    if (!stbi_write_png(fileName.c_str(), output.width, output.height, output.channels, output.pixels, 0)) {
+        std::cerr << "Failed to write image" << std::endl;
+        return -2;
+    } else {
+        std::cout << "Wrote image" << std::endl;
+    }
 
     return 1;
 }
