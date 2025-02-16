@@ -51,16 +51,20 @@ lib.destroy_ape_instance.argtypes = [ctypes.c_void_p]
 lib.destroy_ape_instance.restype = None
 
 # Define load_image function (char* argument needs proper conversion)
-lib.load_image.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
-lib.load_image.restype = None
+lib.load_image.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p]
+lib.load_image.restype = ctypes.c_int
 
 # Define get_frame_buffer_size function
-lib.get_frame_buffer_size.argtypes = [ctypes.c_void_p]
-lib.get_frame_buffer_size.restype = ctypes.c_int
+lib.get_frame_count.argtypes = [ctypes.c_void_p]
+lib.get_frame_count.restype = ctypes.c_int
 
 # Define frame_to_png function
 lib.frame_to_png.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
 lib.frame_to_png.restype = None
+
+# Define frame buffers
+lib.get_frame_buffer.argtypes = [ctypes.c_void_p]
+lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.c_ubyte)
 
 # --------------------------- Use the functions ---------------------------
 
@@ -73,10 +77,13 @@ if not ape:
 image_path = b"./SE"
 
 # Load image
-lib.load_image(ape, image_path, 0)  # Ensure this matches the function signature
+lib.load_image(ape, image_path, 0, b"restrant.pal")
 
 # Frames to png
-num_frames = lib.get_frame_buffer_size(ape)
+num_frames = lib.get_frame_count(ape)
+
+# Get frame buffer
+
 for i in range(0, num_frames):
     lib.frame_to_png(ape, b"test" + str(i).encode() + b".png", i)
 
@@ -84,4 +91,5 @@ print("Image loaded successfully!")
 
 # Destroy instance (to avoid memory leaks)
 lib.destroy_ape_instance(ape)
+
 ```
