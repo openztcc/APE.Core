@@ -34,9 +34,14 @@ class OutputBuffer(ctypes.Structure):
         ("channels", ctypes.c_int)
     ]
 
-# Define frame buffers
+# Define get_frame_buffer function (array of structs)
 lib.get_frame_buffer.argtypes = [ctypes.c_void_p]
-lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.c_ubyte)
+lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.POINTER(OutputBuffer))
+
+# Get frame
+lib.get_frame.argtypes = [ctypes.c_void_p, ctypes.c_int]
+lib.get_frame.restype = ctypes.POINTER(OutputBuffer)
+
 
 # --------------------------- Use the functions ---------------------------
 
@@ -60,9 +65,11 @@ frame_buffer = lib.get_frame_buffer(ape)
 for i in range(0, num_frames):
     lib.frame_to_png(ape, b"test" + str(i).encode() + b".png", i)
     # get frame properties
-    width = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.width
-    height = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.height
-    channels = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.channels
+    #get current frame
+    frame = frame_buffer[i].contents
+    width = frame.width
+    height = frame.height
+    channels = frame.channels
     # get frame data
     data = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.pixels
     # print frame properties
