@@ -4,10 +4,10 @@
 // Licensed under MIT (see LICENSE)
 //
 // Python bindings for APE.CORE
-// Version 0.1.0
+// Version 0.2.0
 
 #include "../../ApeCore.h"
-#define VERSION "0.1.0"
+#define VERSION "0.2.0"
 
 extern "C" {
     __declspec(dllexport) ApeCore* create_ape_instance() 
@@ -20,11 +20,13 @@ extern "C" {
         delete ape;
     }
 
-    __declspec(dllexport) void load_image(ApeCore* ape, const char* fileName, int colorProfile = 0) 
+    __declspec(dllexport) int load_image(ApeCore* ape, const char* fileName, int colorProfile = 0, const char* palName = "")
     {
         if (ape) {
-            ape->load(std::string(fileName), colorProfile);
+            ape->load(std::string(fileName), colorProfile, std::string(palName));
+            return 1;
         }
+        return 0;
     }
 
     __declspec(dllexport) OutputBuffer* get_frame_buffer(ApeCore* ape) 
