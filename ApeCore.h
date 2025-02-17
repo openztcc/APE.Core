@@ -19,7 +19,7 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
-#include "stb_image_write.h"
+#include "./include/stb_image_write.h"
 
 #define INPUT_FILE "SE"
 #define MAGIC "FATZ"

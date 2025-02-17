@@ -2,112 +2,72 @@
 
 This is an image parsing library for Zoo Tycoon 1 graphics. It's designed to be general enough to be used in any project as long as supported bindings are available. Otherwise it should work out-of-the-box in a given C++ project.
 
+## Usage
+
+For most use cases, you can simply include the ApeCore.h header file in your project and link against the ApeCore library. The library is header-only and does not require any additional linking. 
+
+The following functions are available:
+
+| Function | Description |
+| --- | --- |
+| `int ApeCore::loadImage(const char* path, int colorModel, const char* palettePath)` | Load an image from a file |
+| path: path to the image file |
+| colorModel: 0 for RGBA or 1 for BGRA |
+| palettePath: path to the palette file |
+| returns 0 on success, -1 on failure |
+| `int ApeCore::getFrameCount(std::string path, OutputBuffer* buffer)` | Get the number of frames in the image |
+| path: path to the image file |
+| buffer: pixel buffer that contains frame data |
+| `ApeCore::exportToPNG(const char* path, int frame)` | Save a frame to a PNG file |
+| `std::string ApeCore::getPalLocation()` | Get the location of the palette file |
+| `OutputBuffer** ApeCore::apeBuffer()` | Get all the frame buffers in the image as an array of OutputBuffer pointers |
+
+See `main.cpp` in examples/ for an example of how to use the library.
+
+### Compiling
+
+Because the library makes use of `stb_image_write.h`, you will need the includes folder in your project directory. A successful compilation would look something like this:
+
+```bash
+g++ -o my_program my_program.cpp ApeCore.h ApePng.cpp -o my_program
+```
+
 ## Bindings Available
 
-### .NET
+### Compile Extern C
 
-Experimental .NET bindings are available and can be found in the dotnet folder.
+In order for the libary to work in other languages, we need to compile the library as an extern C library. 
 
-To compile, clone this repository and cd into the dotnet folder. Then run the following command:
+#### Windows
 
-`g++ -shared -m64 -o ApeCoreNet.dll ApeCore.NET.cpp "-I../../ -Wl,--out-implib,bindings/libApeCoreNet.a"`
-
-ApeCoreNet.dll should be generated in the dotnet folder and the bindings can be used in any .NET project. Check out the source file for available functions.
-
-### Python
-
-Python bindings are also available.
-
-To compile, clone this repository and cd into the python folder. 
-
-Gather the following dependencies and place them in the same folder as pyape.cpp:
+It makes use of a few MinGW libraries, so you might need the following dependencies to link against:
 
 - libstdc++-6.dll
 - libgcc_s_seh-1.dll
 - libwinpthread-1.dll
 
-Then run the following command:
+Compile:
 
-`g++ -shared -o pyape.dll pyape.cpp ../../stb_image_write_impl.cpp "-Wl,--out-implib,libpyape.a" -static-libgcc -static-libstdc++ -static -lpthread`
-
-You can then import pyape.dll into any python project using ctypes.
-
-Example:
-
-```python
-import ctypes
-
-# Load the DLL
-lib = ctypes.CDLL("./pyape.dll")
-
-# --------------------------- Define the function signatures ---------------------------
-
-# Define create function
-lib.create_ape_instance.argtypes = []
-lib.create_ape_instance.restype = ctypes.c_void_p  # ptr to ApeCore
-
-# Define the destroy function
-lib.destroy_ape_instance.argtypes = [ctypes.c_void_p]
-lib.destroy_ape_instance.restype = None
-
-# Define load_image function (char* argument needs proper conversion)
-lib.load_image.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p]
-lib.load_image.restype = ctypes.c_int
-
-# Define get_frame_buffer_size function
-lib.get_frame_count.argtypes = [ctypes.c_void_p]
-lib.get_frame_count.restype = ctypes.c_int
-
-# Define frame_to_png function
-lib.frame_to_png.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-lib.frame_to_png.restype = None
-
-# Define OutputBuffer struct
-class OutputBuffer(ctypes.Structure):
-    _fields_ = [
-        ("pixels", ctypes.POINTER(ctypes.c_uint8)),
-        ("width", ctypes.c_int),
-        ("height", ctypes.c_int),
-        ("channels", ctypes.c_int)
-    ]
-
-# Define frame buffers
-lib.get_frame_buffer.argtypes = [ctypes.c_void_p]
-lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.c_ubyte)
-
-# --------------------------- Use the functions ---------------------------
-
-# Create instance
-ape = lib.create_ape_instance()
-if not ape:
-    raise RuntimeError("Failed to create ApeCore instance.")
-
-# Convert Python string to C-style string
-image_path = b"./SE"
-
-# Load image
-lib.load_image(ape, image_path, 0, b"restrant.pal")
-
-# Frames to png
-num_frames = lib.get_frame_count(ape)
-
-# Get frame buffer
-frame_buffer = lib.get_frame_buffer(ape)
-
-for i in range(0, num_frames):
-    lib.frame_to_png(ape, b"test" + str(i).encode() + b".png", i)
-    # get frame properties
-    width = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.width
-    height = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.height
-    channels = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.channels
-    # get frame data
-    data = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.pixels
-    # print frame properties
-    print(f"Frame {i}: {width}x{height} with {channels} channels")
-
-print("Image loaded successfully!")
-
-# Destroy instance (to avoid memory leaks)
-lib.destroy_ape_instance(ape)
-
+```bash
+g++ -shared -o pyape.dll pyape.cpp ../../ApePng.cpp "-Wl,--out-implib,libpyape.a" -static-libgcc -static-libstdc++ -static -lpthread
 ```
+
+#### Linux
+
+The libraries should be available by default on most Linux distributions. 
+
+Compile:
+
+```bash
+g++ -shared -o pyape.so pyape.cpp ../../stb_image_write_impl.cpp -lpthread
+```
+
+### Python
+
+Experimental Python bindings are available.
+
+All you need are the compiled shared libraries and the pyape.py module available under bindings. Keeping the directory structure as is, you can import the module and use the functions. 
+
+Check out the APE.KritaTools project for a working example of the Python bindings.
+
+https://github.com/openztcc/APE.KritaTools

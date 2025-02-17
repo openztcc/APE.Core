@@ -1,7 +1,20 @@
+import os
 import ctypes
 
+# This module is used to interface with the C++ APECore library.
+# version: 0.1.0
+
+# Get current path
+current_path = os.path.dirname(os.path.abspath(__file__))
+# If Windows, load the DLL
+if os.name == 'nt':
+    dll_path = os.path.join(current_path, "bin", "ApeExp.dll")
+# If Linux, load the SO
+elif os.name == 'posix':
+    dll_path = os.path.join(current_path, "bin", "libapeexp.so")
+
 # Load the DLL
-lib = ctypes.CDLL("./pyape.dll")
+lib = ctypes.CDLL(os.path.join(dll_path))
 
 # --------------------------- Define the function signatures ---------------------------
 
@@ -21,10 +34,6 @@ lib.load_image.restype = ctypes.c_int
 lib.get_frame_count.argtypes = [ctypes.c_void_p]
 lib.get_frame_count.restype = ctypes.c_int
 
-# Define frame_to_png function
-lib.frame_to_png.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
-lib.frame_to_png.restype = None
-
 # Define OutputBuffer struct
 class OutputBuffer(ctypes.Structure):
     _fields_ = [
@@ -38,44 +47,18 @@ class OutputBuffer(ctypes.Structure):
 lib.get_frame_buffer.argtypes = [ctypes.c_void_p]
 lib.get_frame_buffer.restype = ctypes.POINTER(ctypes.POINTER(OutputBuffer))
 
+# Define frame width function
+lib.get_frame_buffer_width.argtypes = [ctypes.POINTER(OutputBuffer)]
+lib.get_frame_buffer_width.restype = ctypes.c_int
+
+# Define frame height function
+lib.get_frame_buffer_height.argtypes = [ctypes.POINTER(OutputBuffer)]
+lib.get_frame_buffer_height.restype = ctypes.c_int
+
 # Get frame
 lib.get_frame.argtypes = [ctypes.c_void_p, ctypes.c_int]
 lib.get_frame.restype = ctypes.POINTER(OutputBuffer)
 
-
-# --------------------------- Use the functions ---------------------------
-
-# Create instance
-ape = lib.create_ape_instance()
-if not ape:
-    raise RuntimeError("Failed to create ApeCore instance.")
-
-# Convert Python string to C-style string
-image_path = b"./SE"
-
-# Load image
-lib.load_image(ape, image_path, 0, b"restrant.pal")
-
-# Frames to png
-num_frames = lib.get_frame_count(ape)
-
-# Get frame buffer
-frame_buffer = lib.get_frame_buffer(ape)
-
-for i in range(0, num_frames):
-    lib.frame_to_png(ape, b"test" + str(i).encode() + b".png", i)
-    # get frame properties
-    #get current frame
-    frame = frame_buffer[i].contents
-    width = frame.width
-    height = frame.height
-    channels = frame.channels
-    # get frame data
-    data = ctypes.cast(frame_buffer, ctypes.POINTER(OutputBuffer)).contents.pixels
-    # print frame properties
-    print(f"Frame {i}: {width}x{height} with {channels} channels")
-
-print("Image loaded successfully!")
-
-# Destroy instance (to avoid memory leaks)
-lib.destroy_ape_instance(ape)
+# Get pixel stream
+lib.get_frame_stream.argtypes = [ctypes.POINTER(OutputBuffer)]
+lib.get_frame_stream.restype = ctypes.POINTER(ctypes.c_uint8)
