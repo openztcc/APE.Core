@@ -477,6 +477,9 @@ int ApeCore::save(std::string fileName)
 
     output.close();
 
+    // write palette
+    ApeCore::writePal(palLocation);
+
     return 1;
 }
 
