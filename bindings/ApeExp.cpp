@@ -69,4 +69,8 @@ extern "C" {
     __declspec (dllexport) bool validate_palette_file(const char* fileName) {
         return ApeCore::validatePaletteFile(std::string(fileName));
     }
+
+    __declspec (dllexport) bool has_background_frame(const char* fileName) {
+        return ApeCore::hasBackgroundFrame(std::string(fileName));
+    }
 }
