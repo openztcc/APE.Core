@@ -12,7 +12,7 @@
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
 //
-// Version 0.3.0
+// Version 0.4.0
 
 #include <fstream>
 #include <vector>
@@ -24,7 +24,7 @@
 #define INPUT_FILE "SE"
 #define MAGIC "FATZ"
 #define MAGIC_ALT "ZTAF"
-#define APE_CORE_VERSION "0.3.0"
+#define APE_CORE_VERSION "0.4.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -220,8 +220,11 @@ int ApeCore::readPal(std::string fileName)
     }
 
     // read first bytes to know how many colors
-    uint32_t colorCount;
-    pal.read((char*)&colorCount, 4);
+    uint16_t colorCount;
+    pal.read((char*)&colorCount, 2);    
+
+    // skip 2 bytes
+    pal.seekg(2, std::ios::cur);
 
     std::cout << "\tcolorCount: " << colorCount << std::endl;
 
@@ -273,7 +276,7 @@ int ApeCore::writeBuffer()
         output.width = static_cast<int>(frame.width);
         output.height = static_cast<int>(frame.height);
         output.channels = 4;
-        output.pixels = new uint8_t[output.width * output.height * output.channels * frames.size()];
+        output.pixels = new uint8_t[output.width * output.height * output.channels];
 
         // pixel rows (height)
         for (int row = 0; row < frame.height; row++) 
@@ -478,7 +481,7 @@ int ApeCore::save(std::string fileName)
     output.close();
 
     // write palette
-    ApeCore::writePal(palLocation);
+    // ApeCore::writePal(palLocation);
 
     return 1;
 }
