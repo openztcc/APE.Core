@@ -61,4 +61,12 @@ extern "C" {
         if (!ape || index < 0 || index >= ape->getFrameCount()) return 0;
         return ape->exportToPNG(std::string(fileName), *ape->apeBuffer()[index]) ? 1 : 0;
     }
+
+    __declspec (dllexport) bool validate_graphic_file(const char* fileName) {
+        return ApeCore::validateGraphicFile(std::string(fileName));
+    }
+
+    __declspec (dllexport) bool validate_palette_file(const char* fileName) {
+        return ApeCore::validatePaletteFile(std::string(fileName));
+    }
 }

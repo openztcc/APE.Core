@@ -98,15 +98,15 @@ class ApeCore
         std::string getPalLocation();
         std::vector<Frame>& getFrames();
         std::vector<Color>& getColors() { return colors; }
-        bool validateGraphicFile(std::string fileName);
-        bool validatePaletteFile(std::string fileName);
-        bool hasBackgroundFrame() { return hasBackground; }
+        static bool validateGraphicFile(std::string fileName);
+        static bool validatePaletteFile(std::string fileName);
+        static bool hasBackgroundFrame(std::string fileName);
 
     private:
         int readPal(std::string fileName);
         void writePal(std::string fileName);
-        bool isFatz(std::ifstream &input);
-        bool isZTAF(std::ifstream &input);
+        static bool isFatz(std::ifstream &input);
+        static bool isZTAF(std::ifstream &input);
         int writeBuffer();
 
         std::ifstream input;
@@ -205,6 +205,7 @@ bool ApeCore::isFatz(std::ifstream &input)
     input.read(magic, 4);
     
     // read at least 4 bytes
+    // if less than 4 bytes, not FATZ
     if (input.gcount() < 4) 
     {
         input.clear();  
@@ -212,7 +213,7 @@ bool ApeCore::isFatz(std::ifstream &input)
         return false;
     }
 
-    // restore pos if not FATZ
+    // test for FATZ
     if (strcmp(magic, MAGIC) != 0) {
         input.clear();
         input.seekg(originalPos);
@@ -238,7 +239,7 @@ bool ApeCore::isZTAF(std::ifstream &input)
         return false;
     }
 
-    // restore pos if not FATZ
+    // restore pos if not ZTAF
     if (strcmp(magic, MAGIC_ALT) != 0) {
         input.clear();
         input.seekg(originalPos);
@@ -436,7 +437,7 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
     std::cout << "Header" << std::endl;
 
     // check if fatz
-    if (ApeCore::isFatz(input)) {
+    if (ApeCore::isFatz(input) || ApeCore::isZTAF(input)) {
         // skip 4 bytes
         input.seekg(4, std::ios::cur);
         // read 9th byte
@@ -630,6 +631,20 @@ bool ApeCore::validatePaletteFile(std::string fileName)
     isValid = true;
     palette.close();
     return isValid;
+}
+
+bool ApeCore::hasBackgroundFrame(std::string fileName) 
+{
+    std::ifstream graphic(fileName, std::ios::binary);
+    if (!graphic.is_open()) {
+        return false;
+    }
+    // read the 9th byte
+    graphic.seekg(8, std::ios::beg);
+    bool hasBackground = false;
+    graphic.read((char*)&hasBackground, 1);
+    graphic.close();
+    return hasBackground;
 }
 
 int ApeCore::exportToPNG(std::string fileName, OutputBuffer output)
