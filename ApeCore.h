@@ -12,7 +12,7 @@
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
 //
-// Version 0.4.0
+// Version 0.5.0
 
 #include <fstream>
 #include <vector>
@@ -96,11 +96,17 @@ class ApeCore
         int getFrameCount();
         OutputBuffer** apeBuffer();
         std::string getPalLocation();
+        std::vector<Frame>& getFrames();
+        std::vector<Color>& getColors() { return colors; }
+        bool validateGraphicFile(std::string fileName);
+        bool validatePaletteFile(std::string fileName);
+        bool hasBackgroundFrame() { return hasBackground; }
 
     private:
         int readPal(std::string fileName);
         void writePal(std::string fileName);
         bool isFatz(std::ifstream &input);
+        bool isZTAF(std::ifstream &input);
         int writeBuffer();
 
         std::ifstream input;
@@ -175,6 +181,11 @@ OutputBuffer** ApeCore::apeBuffer()
     return frameBuffers;
 }
 
+std::vector<Frame>& ApeCore::getFrames() 
+{
+    return frames;
+}
+
 int ApeCore::getFrameCount() 
 {
     return header.frameCount;
@@ -211,51 +222,104 @@ bool ApeCore::isFatz(std::ifstream &input)
     return true;
 }
 
+bool ApeCore::isZTAF(std::ifstream &input)
+{
+    // save pos
+    std::streampos originalPos = input.tellg();
+
+    char magic[5] = {0};
+    input.read(magic, 4);
+    
+    // read at least 4 bytes
+    if (input.gcount() < 4) 
+    {
+        input.clear();  
+        input.seekg(originalPos);
+        return false;
+    }
+
+    // restore pos if not FATZ
+    if (strcmp(magic, MAGIC_ALT) != 0) {
+        input.clear();
+        input.seekg(originalPos);
+        return false;
+    }
+
+    return true;
+}
+
 int ApeCore::readPal(std::string fileName) 
 {
-    std::cout << "Reading palette" << std::endl;
+    std::cout << "Reading palette: " << fileName << std::endl;
+    
     pal.open(fileName, std::ios::binary);
     if (!pal.is_open()) {
+        std::cerr << "ERROR: Could not open palette file: " << fileName << std::endl;
         return -1;
     }
 
-    // read first bytes to know how many colors
-    uint16_t colorCount;
-    pal.read((char*)&colorCount, 2);    
+    // Read color count (4 bytes, little-endian)
+    uint16_t colorCount = 0;
+    pal.read(reinterpret_cast<char*>(&colorCount), 2);
 
-    // skip 2 bytes
+    // Skip 2
     pal.seekg(2, std::ios::cur);
+    
+    std::cout << "\tColor count: " << colorCount << std::endl;
 
-    std::cout << "\tcolorCount: " << colorCount << std::endl;
-
-    if (colorCount > 256) {
+    // Validate color count
+    if (colorCount == 0 || colorCount > 256) {
+        std::cerr << "ERROR: Invalid color count: " << colorCount << std::endl;
+        pal.close();
         return -2;
     }
 
-    // clear existing data
+    // Clear and prepare colors vector
     colors.clear();
-    colors.reserve(colorCount);
+    colors.reserve(256);  // Always ensure 256 colors
 
-    // read 256 colors
-    for (int i = 0; i < colorCount; i++) {
+    // Read each color (ABGR format, 4 bytes per color)
+    for (uint32_t i = 0; i < colorCount; i++) 
+    {
+        uint32_t abgr;
+        pal.read(reinterpret_cast<char*>(&abgr), 4);
+
         Color color;
-        pal.read((char*)&color.r, 1);
-        pal.read((char*)&color.g, 1);
-        pal.read((char*)&color.b, 1);
-        pal.read((char*)&color.a, 1);
+        color.r = (abgr >> 16) & 0xFF; // Extract red component
+        color.g = (abgr >> 8) & 0xFF;  // Extract green component
+        color.b = abgr & 0xFF;         // Extract blue component
+        color.a = (abgr >> 24) & 0xFF; // Extract alpha component
+
+        // Convert ABGR to RGBA (only if colorModel == 0, otherwise, keep as BGRA)
+        if (colorModel == 0) {
+            std::swap(color.r, color.b);
+        }
+
+
         colors.push_back(color);
-        std::cout << "\tcolor " << i << ": " << (int)color.r << ", " << (int)color.g << ", " << (int)color.b << ", " << (int)color.a << std::endl;
+
+        // Debug output
+        std::cout << "\tColor " << i << ": R=" << static_cast<int>(color.r) 
+                  << " G=" << static_cast<int>(color.g) 
+                  << " B=" << static_cast<int>(color.b) 
+                  << " A=" << static_cast<int>(color.a) 
+                  << " (Raw ABGR: 0x" << std::hex << abgr << std::dec << ")" 
+                  << std::endl;
     }
 
     pal.close();
 
+    // Fill remaining colors if necessary
+    while (colors.size() < 256) {
+        colors.push_back({0, 0, 0, 255});  // Fill with black (fully opaque)
+    }
+
     return 1;
 }
 
+
 int ApeCore::writeBuffer() 
 {
-    // convert PixelSets to output buffer
-
     if (frames.empty()) {
         return 0;
     }
@@ -265,58 +329,98 @@ int ApeCore::writeBuffer()
 
     for (Frame &frame : frames) 
     {
-        // get current index
         int index = &frame - &frames[0];
-
-        // get current frame buffer
         OutputBuffer output = OutputBuffer();
 
-
-        // allocate pixel buffer
+        // Set dimensions and format
         output.width = static_cast<int>(frame.width);
         output.height = static_cast<int>(frame.height);
-        output.channels = 4;
-        output.pixels = new uint8_t[output.width * output.height * output.channels];
+        output.channels = 4;  // RGBA/BGRA
+        
+        // Calculate buffer size and initialize with transparent pixels
+        size_t bufferSize = output.width * output.height * output.channels;
+        output.pixels = new uint8_t[bufferSize];
+        for (size_t i = 0; i < bufferSize; i += 4) {
+            output.pixels[i] = 0;     // R
+            output.pixels[i + 1] = 0; // G
+            output.pixels[i + 2] = 0; // B
+            output.pixels[i + 3] = 0; // A (Fully transparent)
+        }
 
-        // pixel rows (height)
+        // Process each row
         for (int row = 0; row < frame.height; row++) 
         {
-            PixelSet  &pixelSet = frame.pixelSets[row];
-            int xOffset = 0; // track x pos in row
+            if (row >= frame.pixelSets.size()) {
+                std::cerr << "ERROR: Row " << row << " exceeds pixelSet count!" << std::endl;
+                continue;
+            }
 
-            // pixel columns (width)
+            PixelSet &pixelSet = frame.pixelSets[row];
+            int xPos = 0;  // Reset horizontal position for each new row
+
+            // Process each block in the row
             for (PixelBlock &pixelBlock : pixelSet.blocks) 
             {
-                xOffset += pixelBlock.offset; // skip transparent pixels
+                // Apply offset from current position
+                xPos += pixelBlock.offset;
 
+                // Skip if this is an end-of-line block or empty block
+                if (pixelBlock.colorCount == 0) {
+                    continue;
+                }
+
+                // Process each color in the block
                 for (uint8_t colorIndex : pixelBlock.colors) 
                 {
-                    Color &color = colors[colorIndex]; // get rgba value
+                    // Bounds checking
+                    if (xPos >= output.width) {
+                        break;  // Stop if we've exceeded the width
+                    }
+
+                    // Validate color index
+                    if (colorIndex >= colors.size()) {
+                        std::cerr << "ERROR: Out-of-bounds color index! (" 
+                                 << (int)colorIndex << ")" << std::endl;
+                        continue;
+                    }
+
+                    // Calculate pixel position in buffer
+                    size_t pixelIndex = (row * output.width + xPos) * output.channels;
                     
-                    // calc pixel buffer index
-                    int pixelIndex = (row * output.width + xOffset) * output.channels;
-                    if (colorModel == 1) {
+                    // Ensure we don't write outside the buffer
+                    if (pixelIndex + 3 >= bufferSize) {
+                        std::cerr << "ERROR: Buffer overflow prevented at position " 
+                                 << pixelIndex << std::endl;
+                        break;
+                    }
+
+                    // Get color from palette
+                    Color &color = colors[colorIndex];
+
+                    // Write pixel data according to color model
+                    if (colorModel == 1) {  // BGRA mode
                         output.pixels[pixelIndex] = color.b;
                         output.pixels[pixelIndex + 1] = color.g;
                         output.pixels[pixelIndex + 2] = color.r;
                         output.pixels[pixelIndex + 3] = color.a;
-                    } else {
+                    } else {  // RGBA mode
                         output.pixels[pixelIndex] = color.r;
                         output.pixels[pixelIndex + 1] = color.g;
                         output.pixels[pixelIndex + 2] = color.b;
                         output.pixels[pixelIndex + 3] = color.a;
                     }
-                    xOffset++; // next pixel
+                    
+                    xPos++;  // Move to next horizontal position
                 }
             }
         }
+        
+        // Store the completed buffer
         frameBuffers[index] = new OutputBuffer(output);
     }
 
     return 1;
-}
-
-// Color model 0 = RGBA
+}// Color model 0 = RGBA
 // Color model 1 = BGRA
 int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
 {
@@ -484,6 +588,48 @@ int ApeCore::save(std::string fileName)
     // ApeCore::writePal(palLocation);
 
     return 1;
+}
+
+// Does a simple validation to see if file is valid APE graphic
+bool ApeCore::validateGraphicFile(std::string fileName) 
+{
+    std::ifstream graphic(fileName, std::ios::binary);
+    bool isValid = false;
+    if (!graphic.is_open()) {
+        return false;
+    }
+    isValid = ApeCore::isFatz(graphic) || ApeCore::isZTAF(graphic);
+    graphic.close();
+    return isValid;
+}
+
+// Does a simple validation to see if file is valid APE palette
+// Not a comprehensive check, just a quick validation of the first few bytes
+// Loading in the palette later can return early if the rest is not valid
+bool ApeCore::validatePaletteFile(std::string fileName) 
+{
+    std::ifstream palette(fileName, std::ios::binary);
+    bool isValid = false;
+    if (!palette.is_open()) {
+        return false;
+    }
+
+    // Read color count (4 bytes, little-endian)
+    uint16_t colorCount = 0;
+    palette.read(reinterpret_cast<char*>(&colorCount), 2);
+
+    // Skip 2
+    palette.seekg(2, std::ios::cur);
+    
+    // Validate color count
+    if (colorCount < 0 || colorCount > 256) {
+        palette.close();
+        return isValid;
+    }
+
+    isValid = true;
+    palette.close();
+    return isValid;
 }
 
 int ApeCore::exportToPNG(std::string fileName, OutputBuffer output)

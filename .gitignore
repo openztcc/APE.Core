@@ -1,12 +1,10 @@
-/Mu*
-/.vscode
-*.gch
-*.exe
-*.png
-SE
-*.pal
-*.zip
-*.dll
-*.a
-*.txt
-N
+# Ignore all files by default
+*
+
+# Keep these specific exceptions
+!*.md
+!*.cpp
+!*.h
+!*.py
+!LICENSE
+!*.gitignore

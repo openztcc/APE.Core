@@ -7,73 +7,58 @@
 // Version 0.2.0
 
 #include "../ApeCore.h"
-#define VERSION "0.2.0"
+
+#define VERSION "0.3.0"
 
 extern "C" {
-    __declspec(dllexport) ApeCore* create_ape_instance() 
-    {
+    __declspec(dllexport) ApeCore* create_ape_instance() {
         return new ApeCore();
     }
 
-    __declspec(dllexport) void destroy_ape_instance(ApeCore* ape) 
-    {
-        delete ape;
-    }
-
-    __declspec(dllexport) int load_image(ApeCore* ape, const char* fileName, int colorProfile = 0, const char* palName = "")
-    {
+    __declspec(dllexport) void destroy_ape_instance(ApeCore* ape) {
         if (ape) {
-            ape->load(std::string(fileName), colorProfile, std::string(palName));
-            return 1;
+            // Ensure OutputBuffer pointers are cleared before deletion
+            for (int i = 0; i < ape->getFrameCount(); i++) {
+                delete ape->apeBuffer()[i];  // Free each frame buffer
+            }
+            delete ape;
         }
-        return 0;
     }
 
-    __declspec(dllexport) OutputBuffer** get_frame_buffer(ApeCore* ape) 
-    {
-        int frame_count = ape->getFrameCount();
-        if (!ape || frame_count == 0) return nullptr;
-        OutputBuffer** buffer = new OutputBuffer*[frame_count];
-        for (int i = 0; i < frame_count; i++) {
-            buffer[i] = ape->apeBuffer()[i];
-        }
-        return buffer;
-    }
-
-    __declspec(dllexport) int get_frame_count(ApeCore* ape) 
-    {
+    __declspec(dllexport) int load_image(ApeCore* ape, const char* fileName, int colorProfile, const char* palName) {
         if (!ape) return 0;
-        return ape->getFrameCount();
+        return ape->load(std::string(fileName), colorProfile, std::string(palName)) ? 1 : 0;
     }
 
-    __declspec(dllexport) OutputBuffer* get_frame(ApeCore* ape, int index) 
-    {
-        int max_size = ape->getFrameCount();
-        if (!ape || index < 0 || index >= max_size) return nullptr;
-        return ape->apeBuffer()[index];
+    __declspec(dllexport) int get_frame_count(ApeCore* ape) {
+        return (ape) ? ape->getFrameCount() : 0;
     }
 
-    __declspec(dllexport) int get_frame_buffer_width(OutputBuffer* buffer) 
-    {
-        if (!buffer) return 0;
-        return buffer->width;
+    __declspec(dllexport) OutputBuffer** get_frame_buffer(ApeCore* ape) {
+        if (!ape || ape->getFrameCount() == 0) return nullptr;
+        return ape->apeBuffer();
     }
 
-    __declspec(dllexport) int get_frame_buffer_height(OutputBuffer* buffer) 
-    {
-        if (!buffer) return 0;
-        return buffer->height;
+    __declspec(dllexport) void free_frame_buffer(OutputBuffer** buffer) {
+        if (buffer) {
+            delete[] buffer;
+        }
     }
 
-    __declspec(dllexport) uint8_t* get_frame_stream(OutputBuffer* buffer) 
-    {
-        if (!buffer) return nullptr;
-        return buffer->pixels;
+    __declspec(dllexport) Color* get_colors(ApeCore* ape) {
+        if (!ape || ape->getColors().empty()) 
+            return nullptr;
+        return ape->getColors().data();
     }
 
-    __declspec(dllexport) int frame_to_png(ApeCore* ape, const char* fileName, int index) 
-    {
+    __declspec(dllexport) Frame* get_frames(ApeCore* ape) {
+        if (!ape || ape->getFrames().empty()) 
+            return nullptr;
+        return ape->getFrames().data();
+    }
+
+    __declspec(dllexport) int frame_to_png(ApeCore* ape, const char* fileName, int index) {
         if (!ape || index < 0 || index >= ape->getFrameCount()) return 0;
-        return ape->exportToPNG(std::string(fileName), *ape->apeBuffer()[index]);
+        return ape->exportToPNG(std::string(fileName), *ape->apeBuffer()[index]) ? 1 : 0;
     }
 }
