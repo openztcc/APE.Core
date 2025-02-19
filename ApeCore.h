@@ -21,10 +21,8 @@
 #include <cstring>
 #include "./include/stb_image_write.h"
 
-#define INPUT_FILE "SE"
 #define MAGIC "FATZ"
-#define MAGIC_ALT "ZTAF"
-#define APE_CORE_VERSION "0.4.0"
+#define APE_CORE_VERSION "0.5.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -98,15 +96,14 @@ class ApeCore
         std::string getPalLocation();
         std::vector<Frame>& getFrames();
         std::vector<Color>& getColors() { return colors; }
-        static bool validateGraphicFile(std::string fileName);
-        static bool validatePaletteFile(std::string fileName);
-        static bool hasBackgroundFrame(std::string fileName);
+        static int validateGraphicFile(std::string fileName);
+        static int validatePaletteFile(std::string fileName);
+        static int hasBackgroundFrame(std::string fileName);
 
     private:
         int readPal(std::string fileName);
         void writePal(std::string fileName);
-        static bool isFatz(std::ifstream &input);
-        static bool isZTAF(std::ifstream &input);
+        static int hasMagic(std::ifstream &input);
         int writeBuffer();
 
         std::ifstream input;
@@ -196,57 +193,34 @@ std::string ApeCore::getPalLocation()
     return palLocation;
 }
 
-bool ApeCore::isFatz(std::ifstream &input)
-{
-    // save pos
-    std::streampos originalPos = input.tellg();
 
+int ApeCore::hasMagic(std::ifstream &input)
+{
     char magic[5] = {0};
     input.read(magic, 4);
+
+    std::cout << "\tMagic Bytes: " << magic << std::endl;
     
     // read at least 4 bytes
     // if less than 4 bytes, not FATZ
     if (input.gcount() < 4) 
     {
         input.clear();  
-        input.seekg(originalPos);
-        return false;
+        input.seekg(0, std::ios::beg);
+        return 0;
     }
 
     // test for FATZ
     if (strcmp(magic, MAGIC) != 0) {
         input.clear();
-        input.seekg(originalPos);
-        return false;
+        input.seekg(0, std::ios::beg);
+        return 0;
     }
 
-    return true;
-}
-
-bool ApeCore::isZTAF(std::ifstream &input)
-{
-    // save pos
-    std::streampos originalPos = input.tellg();
-
-    char magic[5] = {0};
-    input.read(magic, 4);
-    
-    // read at least 4 bytes
-    if (input.gcount() < 4) 
-    {
-        input.clear();  
-        input.seekg(originalPos);
-        return false;
-    }
-
-    // restore pos if not ZTAF
-    if (strcmp(magic, MAGIC_ALT) != 0) {
-        input.clear();
-        input.seekg(originalPos);
-        return false;
-    }
-
-    return true;
+    // FATZ found
+    input.clear();
+    input.seekg(0, std::ios::beg);
+    return 1;
 }
 
 int ApeCore::readPal(std::string fileName) 
@@ -437,9 +411,9 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
     std::cout << "Header" << std::endl;
 
     // check if fatz
-    if (ApeCore::isFatz(input) || ApeCore::isZTAF(input)) {
-        // skip 4 bytes
-        input.seekg(4, std::ios::cur);
+    if (hasMagic(input)) {
+        // skip 8 bytes
+        input.seekg(8, std::ios::cur);
         // read 9th byte
         input.read((char*)&hasBackground, 1);
         std::cout << "\tType: is fatz" << std::endl;
@@ -592,14 +566,55 @@ int ApeCore::save(std::string fileName)
 }
 
 // Does a simple validation to see if file is valid APE graphic
-bool ApeCore::validateGraphicFile(std::string fileName) 
+// 1. Checks if file is open = Not valid
+// 2. Checks if first 4 bytes are FATZ = Valid
+// 3. Checks if palette name is empty = Not valid
+// 4. Checks if palette name has '.pal' extension = Valid
+int ApeCore::validateGraphicFile(std::string fileName) 
 {
-    std::ifstream graphic(fileName, std::ios::binary);
-    bool isValid = false;
+    std::ifstream graphic(fileName, static_cast<std::ios_base::openmode>(std::ios::binary | std::ios::in));
+    int isValid = 0;
+    Header hdr;
+    
+    // if file is not open, return false
     if (!graphic.is_open()) {
-        return false;
+        // immediately return false if file is not open
+        return 0;
     }
-    isValid = ApeCore::isFatz(graphic) || ApeCore::isZTAF(graphic);
+
+    // if has magic bytes FATZ
+    if (hasMagic(graphic)) {
+        isValid = 1;
+
+        // skip 9 bytes
+        graphic.seekg(9, std::ios::cur);
+    }
+    // if no magic bytes, it means first 9 bytes don't exist
+    // following checks are not necessary:
+    // - MAGIC BYTES - 4 bytes
+    // - UNKNOWN NULL BYTES - 4 bytes
+    // - HAS BACKGROUND - 1 byte
+    // does not mean file is invalid, just not a FATZ file or ZTAF (reverse FATZ)
+
+    graphic.read((char*)&hdr.speed, 4); // speed in ms
+    graphic.read((char*)&hdr.palNameSize, 4); // size of palette name
+    hdr.palName.resize(hdr.palNameSize); // resize to size
+    graphic.read(hdr.palName.data(), hdr.palNameSize); // read palette name
+    graphic.read((char*)&hdr.frameCount, 4); // frame count
+
+    // if pal name is empty, return false
+    if (hdr.palName.empty() || hdr.palNameSize == 0 || hdr.palNameSize < 0) {
+        // if no palette exists then immediately return false
+        return 0;
+    }
+
+    std::string palette(hdr.palName.data());
+
+    // if pal name has '.pal' extension, return true
+    if (palette.find(".pal") != std::string::npos) {
+        isValid = 1;
+    }
+
     graphic.close();
     return isValid;
 }
@@ -607,12 +622,12 @@ bool ApeCore::validateGraphicFile(std::string fileName)
 // Does a simple validation to see if file is valid APE palette
 // Not a comprehensive check, just a quick validation of the first few bytes
 // Loading in the palette later can return early if the rest is not valid
-bool ApeCore::validatePaletteFile(std::string fileName) 
+int ApeCore::validatePaletteFile(std::string fileName) 
 {
-    std::ifstream palette(fileName, std::ios::binary);
+    std::ifstream palette(fileName, static_cast<std::ios_base::openmode>(std::ios::binary | std::ios::in));
     bool isValid = false;
     if (!palette.is_open()) {
-        return false;
+        return 0;
     }
 
     // Read color count (4 bytes, little-endian)
@@ -633,11 +648,11 @@ bool ApeCore::validatePaletteFile(std::string fileName)
     return isValid;
 }
 
-bool ApeCore::hasBackgroundFrame(std::string fileName) 
+int ApeCore::hasBackgroundFrame(std::string fileName) 
 {
     std::ifstream graphic(fileName, std::ios::binary);
     if (!graphic.is_open()) {
-        return false;
+        return 0;
     }
     // read the 9th byte
     graphic.seekg(8, std::ios::beg);

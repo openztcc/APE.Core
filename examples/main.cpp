@@ -13,7 +13,7 @@ int main(int argc, char const *argv[])
         std::cout << "Too many arguments. Usage: " << argv[0] << " <filename> <palette> <optional: output name>" << std::endl;
         return 1;
     }
-    
+
     ApeCore core;
     std::string input_file = argv[1];
     std::string palette_file = argv[2];
@@ -36,6 +36,18 @@ int main(int argc, char const *argv[])
     std::cout << "Writing PNGs" << std::endl;
     for (int i = 0; i < numBuffers; i++) {
         core.exportToPNG(output_name + std::to_string(i) + ".png", *core.apeBuffer()[i]);
+    }
+
+    if (ApeCore::validateGraphicFile(input_file)) {
+        std::cout << "Valid graphic file" << std::endl;
+    } else {
+        std::cout << "Invalid graphic file" << std::endl;
+    }
+
+    if (ApeCore::validatePaletteFile(palette_file)) {
+        std::cout << "Valid palette file" << std::endl;
+    } else {
+        std::cout << "Invalid palette file" << std::endl;
     }
     
     return 0;

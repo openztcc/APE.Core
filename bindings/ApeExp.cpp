@@ -62,15 +62,15 @@ extern "C" {
         return ape->exportToPNG(std::string(fileName), *ape->apeBuffer()[index]) ? 1 : 0;
     }
 
-    __declspec (dllexport) bool validate_graphic_file(const char* fileName) {
+    __declspec (dllexport) int validate_graphic_file(const char* fileName) {
         return ApeCore::validateGraphicFile(std::string(fileName));
     }
 
-    __declspec (dllexport) bool validate_palette_file(const char* fileName) {
+    __declspec (dllexport) int validate_palette_file(const char* fileName) {
         return ApeCore::validatePaletteFile(std::string(fileName));
     }
 
-    __declspec (dllexport) bool has_background_frame(const char* fileName) {
+    __declspec (dllexport) int has_background_frame(const char* fileName) {
         return ApeCore::hasBackgroundFrame(std::string(fileName));
     }
 }
