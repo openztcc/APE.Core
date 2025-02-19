@@ -199,7 +199,7 @@ int ApeCore::hasMagic(std::ifstream &input)
     char magic[5] = {0};
     input.read(magic, 4);
 
-    std::cout << "\tMagic Bytes: " << magic << std::endl;
+    // std::cout << "\tMagic Bytes: " << magic << std::endl;
     
     // read at least 4 bytes
     // if less than 4 bytes, not FATZ
