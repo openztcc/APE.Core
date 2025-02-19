@@ -73,4 +73,8 @@ extern "C" {
     __declspec (dllexport) int has_background_frame(const char* fileName) {
         return ApeCore::hasBackgroundFrame(std::string(fileName));
     }
+
+    __declspec (dllexport) Header get_header(const char* fileName) {
+        return ApeCore::getHeader(std::string(fileName));
+    }
 }

@@ -12,7 +12,7 @@
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
 //
-// Version 0.5.0
+// Version 0.6.0
 
 #include <fstream>
 #include <vector>
@@ -22,7 +22,7 @@
 #include "./include/stb_image_write.h"
 
 #define MAGIC "FATZ"
-#define APE_CORE_VERSION "0.5.0"
+#define APE_CORE_VERSION "0.6.0"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -99,6 +99,8 @@ class ApeCore
         static int validateGraphicFile(std::string fileName);
         static int validatePaletteFile(std::string fileName);
         static int hasBackgroundFrame(std::string fileName);
+        // return header info
+        static Header getHeader(std::string fileName);
 
     private:
         int readPal(std::string fileName);
@@ -630,6 +632,24 @@ int ApeCore::validatePaletteFile(std::string fileName)
         return 0;
     }
 
+    // Get header info
+    Header hdr = getHeader(fileName);
+
+    // if pal name is empty, return false
+    if (hdr.palName.empty() || hdr.palNameSize == 0 || hdr.palNameSize < 0) {
+        // if no palette exists then immediately return false
+        return 0;
+    }
+
+    // Make sure file has .pal extension
+    std::string paletteName(hdr.palName.data());
+    if (paletteName.find(".pal") == std::string::npos) {
+        isValid = 1;
+    } 
+    else {
+        return 0;
+    }
+
     // Read color count (4 bytes, little-endian)
     uint16_t colorCount = 0;
     palette.read(reinterpret_cast<char*>(&colorCount), 2);
@@ -677,6 +697,30 @@ int ApeCore::exportToPNG(std::string fileName, OutputBuffer output)
     }
 
     return 1;
+}
+
+Header ApeCore::getHeader(std::string fileName) 
+{
+    std::ifstream graphic(fileName, std::ios::binary);
+    Header hdr;
+    if (!graphic.is_open()) {
+        return hdr;
+    }
+
+    // if has magic bytes FATZ
+    if (hasMagic(graphic)) {
+        // skip 9 bytes
+        graphic.seekg(9, std::ios::cur);
+    }
+
+    graphic.read((char*)&hdr.speed, 4); // speed in ms
+    graphic.read((char*)&hdr.palNameSize, 4); // size of palette name
+    hdr.palName.resize(hdr.palNameSize); // resize to size
+    graphic.read(hdr.palName.data(), hdr.palNameSize); // read palette name
+    graphic.read((char*)&hdr.frameCount, 4); // frame count
+
+    graphic.close();
+    return hdr;
 }
 
 #endif // APECORE_H
