@@ -49,7 +49,7 @@ It makes use of a few MinGW libraries, so you might need the following dependenc
 Compile:
 
 ```bash
-g++ -shared -o ApeCore.dll ApeExp.cpp ../ApePng.cpp "-Wl,--out-implib,libapecore.a" -static-libgcc -static-libstdc++ -static -lpthread ```
+g++ -shared -o ApeCore.dll ApeExp.cpp ../ApePng.cpp "-Wl,--out-implib,libapecore.a" -static-libgcc -static-libstdc++ -static -lpthread 
 ```
 
 #### Linux
@@ -59,7 +59,7 @@ The libraries should be available by default on most Linux distributions.
 Compile:
 
 ```bash
-g++ -shared -o ApeCore.so ApeExp.cpp ../../stb_image_write_impl.cpp -lpthread
+g++ -shared -o ApeCore.so ApeExp.cpp ../ApePng.cpp -lpthread -fPIC
 ```
 
 ### Python
