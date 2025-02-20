@@ -12,7 +12,7 @@
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
 //
-// Version 0.6.0
+// Version 0.6.3
 
 #include <fstream>
 #include <vector>
@@ -22,7 +22,7 @@
 #include "./include/stb_image_write.h"
 
 #define MAGIC "FATZ"
-#define APE_CORE_VERSION "0.6.2"
+#define APE_CORE_VERSION "0.6.3"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -491,7 +491,7 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
         std::cout << "\tpixelSets: " << frame.pixelSets.size() << std::endl;
         for (int j = 0; j < frame.pixelSets.size(); j++) {
             std::cout << "\t\tpixelSet " << j << std::endl;
-            std::cout << "\t\t\tblockCount: " << frame.pixelSets[j].blockCount << std::endl;
+            std::cout << "\t\t\tblockCount: " << (int)frame.pixelSets[j].blockCount << std::endl;
             for (int k = 0; k < frame.pixelSets[j].blocks.size(); k++) {
                 std::cout << "\t\t\tblock " << k << std::endl;
                 std::cout << "\t\t\t\toffset: " << (int)frame.pixelSets[j].blocks[k].offset << std::endl;
