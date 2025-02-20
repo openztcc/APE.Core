@@ -2,7 +2,7 @@ import os
 import ctypes
 
 # This module is used to interface with the C++ APECore library.
-# version: 0.4.0
+# version: 0.4.1
 
 # Get current path
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +19,8 @@ class OutputBuffer(ctypes.Structure):
         ("pixels", ctypes.POINTER(ctypes.c_uint8)),
         ("width", ctypes.c_int),
         ("height", ctypes.c_int),
+        ("offsetX", ctypes.c_int),
+        ("offsetY", ctypes.c_int),
         ("channels", ctypes.c_int)
     ]
 
