@@ -50,6 +50,7 @@ Compile:
 
 ```bash
 g++ -shared -o ApeCore.dll ApeExp.cpp ../ApePng.cpp "-Wl,--out-implib,libapecore.a" -static-libgcc -static-libstdc++ -static -lpthread ```
+```
 
 #### Linux
 

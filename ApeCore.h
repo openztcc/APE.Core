@@ -22,7 +22,7 @@
 #include "./include/stb_image_write.h"
 
 #define MAGIC "FATZ"
-#define APE_CORE_VERSION "0.6.0"
+#define APE_CORE_VERSION "0.6.2"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -628,40 +628,40 @@ int ApeCore::validatePaletteFile(std::string fileName)
 {
     std::ifstream palette(fileName, static_cast<std::ios_base::openmode>(std::ios::binary | std::ios::in));
     bool isValid = false;
-    if (!palette.is_open()) {
-        return 0;
-    }
+    // if (!palette.is_open()) {
+    //     return 0;
+    // }
 
-    // Get header info
-    Header hdr = getHeader(fileName);
+    // // Get header info
+    // Header hdr = getHeader(fileName);
 
-    // if pal name is empty, return false
-    if (hdr.palName.empty() || hdr.palNameSize == 0 || hdr.palNameSize < 0) {
-        // if no palette exists then immediately return false
-        return 0;
-    }
+    // // if pal name is empty, return false
+    // if (hdr.palName.empty() || hdr.palNameSize == 0 || hdr.palNameSize < 0) {
+    //     // if no palette exists then immediately return false
+    //     return 0;
+    // }
 
-    // Make sure file has .pal extension
-    std::string paletteName(hdr.palName.data());
-    if (paletteName.find(".pal") == std::string::npos) {
-        isValid = 1;
-    } 
-    else {
-        return 0;
-    }
+    // // Make sure file has .pal extension
+    // std::string paletteName(hdr.palName.data());
+    // if (paletteName.find(".pal") == std::string::npos) {
+    //     isValid = 1;
+    // } 
+    // else {
+    //     return 0;
+    // }
 
-    // Read color count (4 bytes, little-endian)
-    uint16_t colorCount = 0;
-    palette.read(reinterpret_cast<char*>(&colorCount), 2);
+    // // Read color count (4 bytes, little-endian)
+    // uint16_t colorCount = 0;
+    // palette.read(reinterpret_cast<char*>(&colorCount), 2);
 
-    // Skip 2
-    palette.seekg(2, std::ios::cur);
+    // // Skip 2
+    // palette.seekg(2, std::ios::cur);
     
-    // Validate color count
-    if (colorCount < 0 || colorCount > 256) {
-        palette.close();
-        return isValid;
-    }
+    // // Validate color count
+    // if (colorCount < 0 || colorCount > 256) {
+    //     palette.close();
+    //     return isValid;
+    // }
 
     isValid = true;
     palette.close();
@@ -674,8 +674,16 @@ int ApeCore::hasBackgroundFrame(std::string fileName)
     if (!graphic.is_open()) {
         return 0;
     }
-    // read the 9th byte
-    graphic.seekg(8, std::ios::beg);
+
+    // if has magic bytes FATZ
+    if (hasMagic(graphic)) {
+        // skip 9 bytes
+        graphic.seekg(8, std::ios::cur);
+    }
+    else {
+        graphic.close();
+        return 0;
+    }
     bool hasBackground = false;
     graphic.read((char*)&hasBackground, 1);
     graphic.close();
