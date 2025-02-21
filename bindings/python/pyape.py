@@ -77,8 +77,8 @@ class Frame(ctypes.Structure):
         ("frameSize", ctypes.c_uint32),
         ("height", ctypes.c_uint16),
         ("width", ctypes.c_uint16),
-        ("x", ctypes.c_uint16),
-        ("y", ctypes.c_uint16),
+        ("y", ctypes.c_int16),
+        ("x", ctypes.c_int16),
         ("unk", ctypes.c_uint16),
         ("pixelSets", ctypes.POINTER(PixelSet))
     ]
