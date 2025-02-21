@@ -22,7 +22,7 @@
 #include "./include/stb_image_write.h"
 
 #define MAGIC "FATZ"
-#define APE_CORE_VERSION "0.6.3"
+#define APE_CORE_VERSION "0.6.4"
 
 // if FATZ is first 4 bytes, additional 5 bytes ahead
 // The ninth byte is a boolean value that specifies if there is an 
@@ -56,8 +56,8 @@ struct Frame
     uint32_t frameSize; // in bytes
     uint16_t height;
     uint16_t width;
-    uint16_t x; // x offset
-    uint16_t y; // y offset
+    int16_t y; // y offset
+    int16_t x; // x offset
     uint8_t unk1; // unknown bytes
     uint8_t unk2; // unknown bytes
     std::vector<PixelSet> pixelSets; // The pixel sets  
@@ -261,17 +261,14 @@ int ApeCore::readPal(std::string fileName)
     // Read each color (ABGR format, 4 bytes per color)
     for (uint32_t i = 0; i < colorCount; i++) 
     {
-        uint32_t abgr;
-        pal.read(reinterpret_cast<char*>(&abgr), 4);
+        // uint32_t abgr;
+        // pal.read(reinterpret_cast<char*>(&abgr), 4);
 
         Color color;
-        color.r = (abgr >> 16) & 0xFF; // Extract red component
-        color.g = (abgr >> 8) & 0xFF;  // Extract green component
-        color.b = abgr & 0xFF;         // Extract blue component
-        color.a = (abgr >> 24) & 0xFF; // Extract alpha component
+        pal.read(reinterpret_cast<char*>(&color), 4);
 
-        // Convert ABGR to RGBA (only if colorModel == 0, otherwise, keep as BGRA)
-        if (colorModel == 0) {
+        // Convert RGBA to BGRA if necessary
+        if (colorModel == 1) {
             std::swap(color.r, color.b);
         }
 
@@ -283,7 +280,7 @@ int ApeCore::readPal(std::string fileName)
                   << " G=" << static_cast<int>(color.g) 
                   << " B=" << static_cast<int>(color.b) 
                   << " A=" << static_cast<int>(color.a) 
-                  << " (Raw ABGR: 0x" << std::hex << abgr << std::dec << ")" 
+                //   << " (Raw ARGB: " << std::hex << color.a << color.r << color.g << color.b << std::dec << ")"
                   << std::endl;
     }
 
@@ -347,9 +344,9 @@ int ApeCore::writeBuffer()
                 xPos += pixelBlock.offset;
 
                 // Skip if this is an end-of-line block or empty block
-                // if (pixelBlock.colorCount == 0) {
-                //     continue;
-                // }
+                if (pixelBlock.colorCount == 0) {
+                    continue;
+                }
 
                 // Process each color in the block
                 for (uint8_t colorIndex : pixelBlock.colors) 
@@ -360,7 +357,7 @@ int ApeCore::writeBuffer()
                     }
 
                     // Validate color index
-                    if (colorIndex > colors.size()) {
+                    if (colorIndex >= colors.size()) {
                         std::cerr << "ERROR: Out-of-bounds color index! (" 
                                  << (int)colorIndex << ")" << std::endl;
                         continue;
@@ -462,8 +459,8 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
         input.read((char*)&frame.frameSize, 4);
         input.read((char*)&frame.height, 2);
         input.read((char*)&frame.width, 2);
-        input.read((char*)&frame.x, 2);
         input.read((char*)&frame.y, 2);
+        input.read((char*)&frame.x, 2);
         input.read((char*)&frame.unk1, 1); // always 0?
         input.read((char*)&frame.unk2, 1); // always 0?
 
@@ -481,10 +478,11 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
                 pixelSet.blocks[k] = block; // store block
             }
 
-            // TODO: test issues that might arise from this
-            if (pixelSet.blockCount == 0) {
-                pixelSet.blocks.push_back(PixelBlock{0, 0, std::vector<uint8_t>()});
-            }
+            // // TODO: test issues that might arise from this
+            // // Possible issue: skips some pixels and leaves them blank
+            // if (pixelSet.blockCount == 0) {
+            //     pixelSet.blocks.push_back(PixelBlock{0, 0, std::vector<uint8_t>()});
+            // }
             frame.pixelSets.push_back(pixelSet); // store pixel set
         }
 
@@ -494,10 +492,10 @@ int ApeCore::load(std::string fileName, int colorModel, std::string ioPal)
         // print frame
         std::cout << "Frame " << i << std::endl;
         std::cout << "\tframeSize: " << frame.frameSize << " bytes" << std::endl;
-        std::cout << "\theight: " << frame.height << " px" << std::endl;
-        std::cout << "\twidth: " << frame.width << " px" << std::endl;
-        std::cout << "\tx: " << frame.x << std::endl;
-        std::cout << "\ty: " << frame.y << std::endl;
+        std::cout << "\theight: " << (int)frame.height << " px" << std::endl;
+        std::cout << "\twidth: " << (int)frame.width << " px" << std::endl;
+        std::cout << "\ty: " << (int)frame.y << std::endl;
+        std::cout << "\tx: " << (int)frame.x << std::endl;
         std::cout << "\tunk1: " << (int)frame.unk1 << std::endl;
         std::cout << "\tunk2: " << (int)frame.unk2 << std::endl;
         std::cout << "\tpixelSets: " << frame.pixelSets.size() << std::endl;
