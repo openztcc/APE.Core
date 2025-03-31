@@ -4,6 +4,7 @@
 # Keep these specific exceptions
 !*.md
 !*.cpp
+!CMakeLists.txt
 !*.h
 !*.py
 !LICENSE
