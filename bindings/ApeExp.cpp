@@ -6,7 +6,7 @@
 // Python bindings for APE.CORE
 // Version 0.4.0
 
-#include "../ApeCore.h"
+#include "../include/ApeCore.h"
 
 #define VERSION "0.4.0"
 
