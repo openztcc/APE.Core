@@ -12,6 +12,9 @@
 // Credits to Jeff Bostoen for his fantastic documentation on the ZT1 file formats:
 // https://github.com/jbostoen/ZTStudio/wiki/ZT1-Graphics-Explained
 //
+// Credits to the original author of the STB image library (for PNG writing):
+// - Sean Barrett (released under public domain/MIT)
+// 
 // Version 0.6.3
 
 #include <fstream>
