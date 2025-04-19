@@ -43,7 +43,6 @@ int main(int argc, char const *argv[])
     std::cout << "Average time per frame: " << total_time / core.getFrameCount() << " seconds" << std::endl;
 
     int numBuffers = core.getFrameCount();
-    // std::cout << "numBuffers: " << numBuffers << std::endl;
     std::cout << "Writing PNGs" << std::endl;
     int successCount = 0;
     for (int i = 0; i < numBuffers; i++) {
@@ -54,19 +53,8 @@ int main(int argc, char const *argv[])
             successCount++;
         }
     }
-    std::cout << "Finished writing " << successCount << "frames to PNG with " << numBuffers - successCount << " errors." << std::endl;
 
-    // if (ApeCore::validateGraphicFile(input_file)) {
-    //     std::cout << "Valid ZT graphic file" << std::endl;
-    // } else {
-    //     std::cout << "Invalid ZT graphic file" << std::endl;
-    // }
-
-    // if (ApeCore::validatePaletteFile(palette_file)) {
-    //     std::cout << "Valid ZT palette file" << std::endl;
-    // } else {
-    //     std::cout << "Invalid ZT palette file" << std::endl;
-    // }
+    std::cout << "Finished writing " << successCount << " frames to PNG with " << numBuffers - successCount << " errors." << std::endl;
     
     return 0;
 }
